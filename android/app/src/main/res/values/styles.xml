@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#0D3B66</color>
+    <color name="primary_dark">#08263F</color>
+    <color name="accent">#4FC3F7</color>
+    <color name="header_bg">#1B2733</color>
+    <color name="icon_bg">#0D3B66</color>
+
+    <style name="AppTheme" parent="android:Theme.Material">
+        <item name="android:colorPrimary">@color/primary</item>
+        <item name="android:colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:colorAccent">@color/accent</item>
+    </style>
+</resources>
