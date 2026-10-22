@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OSINT Cheat Sheet</string>
+    <string name="dork_builder">Dork Builder</string>
+    <string name="exif_tool">EXIF Metadata Tool</string>
+</resources>

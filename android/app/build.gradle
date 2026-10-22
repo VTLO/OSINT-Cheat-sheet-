@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The tool list is not duplicated in the app: README.md and awesome-article.md
+// from the repository root are bundled as assets and parsed at runtime, so the
+// APK always contains every tool listed in the cheat sheet.
+def generatedAssets = layout.buildDirectory.dir("generated/cheatsheet-assets")
+
+def copyCheatSheet = tasks.register('copyCheatSheet', Copy) {
+    from(rootProject.file('../README.md'))
+    from(rootProject.file('../awesome-article.md'))
+    into(generatedAssets)
+}
+
+android {
+    namespace 'io.github.osintcheatsheet'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.osintcheatsheet'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main.assets.srcDirs += generatedAssets
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key so the APK installs without extra setup.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn copyCheatSheet }
