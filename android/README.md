@@ -1,8 +1,8 @@
-# OSINT Cheat Sheet — Android app
+# VTLOsint — Android app
 
 An all-in-one Android app that puts **every tool listed in this repository** in your pocket.
 
-**Download:** [`release/OSINT-Cheat-Sheet.apk`](release/OSINT-Cheat-Sheet.apk) (Android 7.0+, ~50 KB, no trackers, no dependencies).
+**Download:** [`release/VTLOsint.apk`](release/VTLOsint.apk) (Android 7.0+, ~100 KB, no trackers, no dependencies).
 CI also builds a fresh APK on every change to the cheat sheet (Actions → *Android APK* → artifact).
 
 ## What it does

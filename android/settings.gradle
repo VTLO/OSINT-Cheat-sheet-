@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "OSINT-Cheat-Sheet"
+rootProject.name = "VTLOsint"
 include ':app'
