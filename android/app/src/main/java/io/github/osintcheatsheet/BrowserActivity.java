@@ -43,7 +43,7 @@ public class BrowserActivity extends Activity {
 
         address = new EditText(this);
         address.setSingleLine(true);
-        address.setTextSize(20);
+        address.setTextSize(14);
         address.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         address.setImeOptions(EditorInfo.IME_ACTION_GO);
         address.setSelectAllOnFocus(true);

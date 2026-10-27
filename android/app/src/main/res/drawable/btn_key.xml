@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:inset="3dp">
+    <selector>
+        <item android:state_enabled="false">
+            <shape><solid android:color="@color/surface" /><corners android:radius="10dp" />
+                <padding android:left="10dp" android:right="10dp" android:top="8dp" android:bottom="8dp" /></shape>
+        </item>
+        <item android:state_pressed="true">
+            <shape><solid android:color="@color/key_pressed" /><corners android:radius="10dp" />
+                <padding android:left="10dp" android:right="10dp" android:top="8dp" android:bottom="8dp" /></shape>
+        </item>
+        <item>
+            <shape><solid android:color="@color/key" /><corners android:radius="10dp" />
+                <padding android:left="10dp" android:right="10dp" android:top="8dp" android:bottom="8dp" /></shape>
+        </item>
+    </selector>
+</inset>

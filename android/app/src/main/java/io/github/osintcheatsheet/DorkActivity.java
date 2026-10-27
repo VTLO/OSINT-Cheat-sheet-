@@ -62,7 +62,7 @@ public class DorkActivity extends Activity {
     private static final String[][] ENGINES = {
             {"Google", "https://www.google.com/search?q="},
             {"Bing", "https://www.bing.com/search?q="},
-            {"DuckDuckGo", "https://duckduckgo.com/?q="},
+            {"DDG", "https://duckduckgo.com/?q="},
             {"Yandex", "https://yandex.com/search/?text="},
     };
 

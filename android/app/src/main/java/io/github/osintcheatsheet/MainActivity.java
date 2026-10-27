@@ -11,15 +11,15 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.Space;
 import android.widget.TextView;
@@ -34,8 +34,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Flipper-style home screen. "Remote" mode shows one tool at a time on an LCD
- * panel driven by a D-pad; "Search" mode is the searchable, collapsible list.
+ * Home screen, a mix of three devices: an infographic header and section card, an MPC-style
+ * chassis with an 8-pad bank of tools and REC/PLAY/STOP keys, and a Flipper LCD and D-pad.
+ * "Search" swaps the deck for the searchable, collapsible list.
  */
 public class MainActivity extends Activity {
 
@@ -45,8 +46,9 @@ public class MainActivity extends Activity {
     private static final String KEY_ITEM = "remote_item";
     private static final String FAVORITES = "Favorites";
     private static final int HISTORY_LIMIT = 50;
+    private static final int BANK_SIZE = 8;
 
-    /** A navigable item on the LCD: either a tool or a section's notes page. */
+    /** A navigable item: either a tool or a section's notes page. */
     private static final class Entry {
         final String section;
         final CheatSheet.Tool tool;
@@ -56,6 +58,15 @@ public class MainActivity extends Activity {
             this.section = section;
             this.tool = tool;
             this.notes = notes;
+        }
+
+        int padState() {
+            if (tool == null) return Panel.PAD_STATE_NOTES;
+            return tool.termuxScript() != null ? Panel.PAD_STATE_CLI : Panel.PAD_STATE_WEB;
+        }
+
+        String label() {
+            return tool == null ? "Notes" : tool.name;
         }
     }
 
@@ -92,18 +103,19 @@ public class MainActivity extends Activity {
     private Map<String, CheatSheet.Tool> toolsByUrl;
     private SharedPreferences prefs;
 
-    // Remote mode
+    // Deck mode
     private final List<Group> groups = new ArrayList<>();
     private final Deque<int[]> history = new ArrayDeque<>();
     private int group;
     private int item;
-    private View remoteView;
-    private TextView lcdSection;
-    private TextView lcdCounter;
+    private View deckView;
+    private Panel.SectionCard sectionCard;
+    private TextView lcdStatus;
     private TextView lcdName;
     private TextView lcdHost;
     private TextView lcdType;
-    private TextView lcdDescription;
+    private final TextView[] pads = new TextView[BANK_SIZE];
+    private Panel.TransportKey recKey;
 
     // Search mode
     private final Set<String> expanded = new HashSet<>();
@@ -111,22 +123,7 @@ public class MainActivity extends Activity {
     private View listView;
     private RowAdapter adapter;
     private String query = "";
-    private ImageLabel modeButton;
-
-    /** The first top button flips between Search and Remote, so it needs its parts. */
-    private static final class ImageLabel {
-        final LinearLayout box;
-
-        ImageLabel(LinearLayout box) {
-            this.box = box;
-        }
-
-        void set(int icon, String label) {
-            ((android.widget.ImageView) box.getChildAt(0)).setImageResource(icon);
-            ((TextView) box.getChildAt(1)).setText(label);
-            box.setContentDescription(label);
-        }
-    }
+    private LinearLayout modeButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,25 +139,56 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackground(new Panel.CircuitDrawable(this));
+        root.addView(buildHeader());
 
         LinearLayout top = new LinearLayout(this);
-        top.setPadding(0, Ui.dp(this, 16), 0, Ui.dp(this, 8));
-        modeButton = new ImageLabel(addTopButton(top, R.drawable.ic_search, "Search", v -> toggleMode()));
+        top.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 14), Ui.dp(this, 10));
+        modeButton = addTopButton(top, R.drawable.ic_search, "Search", v -> toggleMode());
         addTopButton(top, R.drawable.ic_globe, "Dorks", v -> startActivity(new Intent(this, DorkActivity.class)));
         addTopButton(top, R.drawable.ic_camera, "EXIF", v -> startActivity(new Intent(this, ExifActivity.class)));
         addTopButton(top, R.drawable.ic_terminal, "Termux", v -> Termux.showSetupHelp(this, null));
         root.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout content = new FrameLayout(this);
-        remoteView = buildRemote();
+        deckView = buildDeck();
         listView = buildList();
         listView.setVisibility(View.GONE);
-        content.addView(remoteView);
+        content.addView(deckView);
         content.addView(listView);
         root.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         setContentView(root);
         showEntry();
+    }
+
+    /** Infographic-style title block with an overflow menu. */
+    private View buildHeader() {
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(Ui.dp(this, 20), Ui.dp(this, 14), Ui.dp(this, 8), 0);
+        LinearLayout titles = new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        TextView title = Panel.text(this, 30, Panel.BLUE, true);
+        title.setText("VTLOSINT");
+        title.setLetterSpacing(0.02f);
+        title.setIncludeFontPadding(false);
+        titles.addView(title);
+        TextView subtitle = Panel.text(this, 11, Panel.TEXT_DIM, true);
+        subtitle.setLetterSpacing(0.12f);
+        subtitle.setText(String.format(Locale.ROOT, "OSINT TOOLKIT · %d TOOLS · %d SECTIONS",
+                toolsByUrl.size(), sections.size()));
+        titles.addView(subtitle);
+        header.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        ImageView more = new ImageView(this);
+        more.setImageResource(R.drawable.ic_more);
+        int p = Ui.dp(this, 10);
+        more.setPadding(p, p, p, p);
+        more.setContentDescription("More options");
+        more.setOnClickListener(this::showOverflow);
+        header.addView(more, new LinearLayout.LayoutParams(Ui.dp(this, 44), Ui.dp(this, 44)));
+        return header;
     }
 
     private LinearLayout addTopButton(LinearLayout top, int icon, String label, View.OnClickListener click) {
@@ -169,71 +197,63 @@ public class MainActivity extends Activity {
         return button;
     }
 
-    // ---------------------------------------------------------------- remote mode
+    // ---------------------------------------------------------------- deck mode
 
-    private View buildRemote() {
+    private View buildDeck() {
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        int side = Ui.dp(this, 20);
+        int side = Ui.dp(this, 16);
         column.setPadding(side, 0, side, Ui.dp(this, 16));
-        column.addView(new Space(this), new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        LinearLayout screen = new LinearLayout(this);
-        screen.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout header = new LinearLayout(this);
-        lcdSection = Flipper.lcdText(this, 20, false);
-        lcdSection.setSingleLine(true);
-        lcdSection.setEllipsize(TextUtils.TruncateAt.END);
-        header.addView(lcdSection, new LinearLayout.LayoutParams(0, -2, 1f));
-        lcdCounter = Flipper.lcdText(this, 20, false);
-        header.addView(lcdCounter);
-        screen.addView(header);
+        sectionCard = new Panel.SectionCard(this);
+        sectionCard.setOnClickListener(v -> jumpGroup(1));
+        column.addView(sectionCard, new LinearLayout.LayoutParams(-1, -2));
 
-        lcdName = Flipper.lcdText(this, 32, true);
-        lcdName.setLines(2);
-        lcdName.setEllipsize(TextUtils.TruncateAt.END);
-        lcdName.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, -2);
-        nameLp.topMargin = Ui.dp(this, 6);
-        screen.addView(lcdName, nameLp);
+        LinearLayout chassis = new LinearLayout(this);
+        chassis.setOrientation(LinearLayout.VERTICAL);
+        chassis.setBackground(Panel.chassis(this));
+        int cp = Ui.dp(this, 12);
+        chassis.setPadding(cp, cp, cp, cp);
+        LinearLayout.LayoutParams chassisLp = new LinearLayout.LayoutParams(-1, -2);
+        chassisLp.topMargin = Ui.dp(this, 14);
+        column.addView(chassis, chassisLp);
 
-        lcdHost = Flipper.lcdText(this, 24, false);
-        lcdHost.setSingleLine(true);
-        lcdHost.setEllipsize(TextUtils.TruncateAt.END);
-        screen.addView(lcdHost);
-        lcdType = Flipper.lcdText(this, 24, false);
-        lcdType.setSingleLine(true);
-        screen.addView(lcdType);
-        lcdDescription = Flipper.lcdText(this, 21, false);
-        lcdDescription.setLines(2);
-        lcdDescription.setEllipsize(TextUtils.TruncateAt.END);
-        screen.addView(lcdDescription);
+        chassis.addView(buildLcd(), new LinearLayout.LayoutParams(-1, -2));
 
-        LinearLayout keys = new LinearLayout(this);
-        keys.addView(Flipper.softKey(this, "◀ Prev.", v -> move(-1)));
-        keys.addView(new Space(this), new LinearLayout.LayoutParams(0, 1, 1f));
-        keys.addView(Flipper.softKey(this, "Next ▶", v -> move(1)));
-        LinearLayout.LayoutParams keysLp = new LinearLayout.LayoutParams(-1, -2);
-        keysLp.topMargin = Ui.dp(this, 8);
-        screen.addView(keys, keysLp);
-
-        View lcd = Flipper.lcd(this, screen);
-        lcd.setOnClickListener(v -> openCurrent());
-        lcd.setOnLongClickListener(v -> {
-            showCurrentMenu();
-            return true;
-        });
-        column.addView(lcd, new LinearLayout.LayoutParams(-1, -2));
-
-        LinearLayout.LayoutParams markLp = new LinearLayout.LayoutParams(-1, -2);
-        markLp.topMargin = Ui.dp(this, 10);
-        markLp.bottomMargin = Ui.dp(this, 14);
-        column.addView(Flipper.wordmark(this, "VTLOSINT"), markLp);
+        // 4 x 2 pad grid on a dark grid background, like the MPC's pad matrix.
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setBackground(Flipper.rounded(Panel.NAVY_GRID, 0, 0, 6, this));
+        int gap = Ui.dp(this, 5);
+        grid.setPadding(gap, gap, gap, gap);
+        for (int r = 0; r < 2; r++) {
+            LinearLayout row = new LinearLayout(this);
+            for (int c = 0; c < 4; c++) {
+                int index = r * 4 + c;
+                TextView pad = Panel.pad(this);
+                pad.setOnClickListener(v -> onPad(index));
+                pad.setOnLongClickListener(v -> {
+                    selectPad(index);
+                    showCurrentMenu();
+                    return true;
+                });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Ui.dp(this, 60), 1f);
+                if (c > 0) lp.leftMargin = gap;
+                row.addView(pad, lp);
+                pads[index] = pad;
+            }
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            if (r > 0) rowLp.topMargin = gap;
+            grid.addView(row, rowLp);
+        }
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(-1, -2);
+        gridLp.topMargin = Ui.dp(this, 12);
+        chassis.addView(grid, gridLp);
 
         LinearLayout controls = new LinearLayout(this);
-        controls.addView(new Space(this), new LinearLayout.LayoutParams(0, 1, 1f));
-        Flipper.DPad pad = new Flipper.DPad(this);
-        pad.setListener(new Flipper.DPad.Listener() {
+        controls.setGravity(Gravity.CENTER_VERTICAL);
+        Flipper.DPad dpad = new Flipper.DPad(this);
+        dpad.setListener(new Flipper.DPad.Listener() {
             @Override
             public void onPress(int key) {
                 switch (key) {
@@ -250,21 +270,90 @@ public class MainActivity extends Activity {
                 showCurrentMenu();
             }
         });
-        int padSize = Ui.dp(this, 190);
-        controls.addView(pad, new LinearLayout.LayoutParams(padSize, padSize));
-        FrameLayout backSlot = new FrameLayout(this);
-        Flipper.BackButton back = new Flipper.BackButton(this);
-        back.setOnClickListener(v -> goBack());
-        int backSize = Ui.dp(this, 66);
-        backSlot.addView(back, new FrameLayout.LayoutParams(backSize, backSize,
-                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
-        controls.addView(backSlot, new LinearLayout.LayoutParams(0, padSize, 1f));
-        column.addView(controls, new LinearLayout.LayoutParams(-1, -2));
+        int padSize = Ui.dp(this, 148);
+        controls.addView(dpad, new LinearLayout.LayoutParams(padSize, padSize));
+
+        LinearLayout right = new LinearLayout(this);
+        right.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout banks = new LinearLayout(this);
+        banks.setGravity(Gravity.CENTER);
+        banks.addView(Panel.pill(this, "BANK ◀", Panel.KEY, v -> jumpBank(-1)),
+                new LinearLayout.LayoutParams(0, -2, 1f));
+        banks.addView(Panel.pill(this, "BANK ▶", Flipper.ORANGE, v -> jumpBank(1)),
+                new LinearLayout.LayoutParams(0, -2, 1f));
+        right.addView(banks, new LinearLayout.LayoutParams(-1, -2));
+        right.addView(new Space(this), new LinearLayout.LayoutParams(1, 0, 1f));
+        LinearLayout transport = new LinearLayout(this);
+        recKey = new Panel.TransportKey(this, "REC", Panel.LED_RED, Panel.REC_RED, v -> toggleFavoriteCurrent());
+        transport.addView(recKey, keyLp(false));
+        transport.addView(new Panel.TransportKey(this, "PLAY", Panel.LED_GREEN, Panel.KEY, v -> openCurrent()),
+                keyLp(true));
+        transport.addView(new Panel.TransportKey(this, "STOP", 0, Panel.KEY, v -> goBack()), keyLp(true));
+        right.addView(transport, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(0, padSize, 1f);
+        rightLp.leftMargin = Ui.dp(this, 10);
+        controls.addView(right, rightLp);
+
+        LinearLayout.LayoutParams controlsLp = new LinearLayout.LayoutParams(-1, -2);
+        controlsLp.topMargin = Ui.dp(this, 12);
+        chassis.addView(controls, controlsLp);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.addView(column);
         return scroll;
+    }
+
+    private LinearLayout.LayoutParams keyLp(boolean gapBefore) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+        if (gapBefore) lp.leftMargin = Ui.dp(this, 6);
+        return lp;
+    }
+
+    /** Orange Flipper screen with an MPC-style status strip on top. */
+    private View buildLcd() {
+        LinearLayout screen = new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        lcdStatus = Flipper.lcdText(this, 18, false);
+        lcdStatus.setSingleLine(true);
+        lcdStatus.setEllipsize(TextUtils.TruncateAt.END);
+        lcdStatus.setBackgroundColor(Flipper.LCD_BAR);
+        lcdStatus.setPadding(Ui.dp(this, 8), Ui.dp(this, 3), Ui.dp(this, 8), Ui.dp(this, 3));
+        screen.addView(lcdStatus, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        int pad = Ui.dp(this, 10);
+        body.setPadding(pad, Ui.dp(this, 6), pad, Ui.dp(this, 8));
+        lcdName = Flipper.lcdText(this, 30, true);
+        lcdName.setSingleLine(true);
+        lcdName.setEllipsize(TextUtils.TruncateAt.END);
+        body.addView(lcdName);
+        lcdHost = Flipper.lcdText(this, 22, false);
+        lcdHost.setSingleLine(true);
+        lcdHost.setEllipsize(TextUtils.TruncateAt.END);
+        body.addView(lcdHost);
+        lcdType = Flipper.lcdText(this, 22, false);
+        lcdType.setSingleLine(true);
+        lcdType.setEllipsize(TextUtils.TruncateAt.END);
+        body.addView(lcdType);
+
+        LinearLayout keys = new LinearLayout(this);
+        keys.addView(Flipper.softKey(this, "◀ Prev.", v -> move(-1)));
+        keys.addView(new Space(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        keys.addView(Flipper.softKey(this, "Next ▶", v -> move(1)));
+        LinearLayout.LayoutParams keysLp = new LinearLayout.LayoutParams(-1, -2);
+        keysLp.topMargin = Ui.dp(this, 6);
+        body.addView(keys, keysLp);
+        screen.addView(body);
+
+        View lcd = Flipper.lcd(this, screen);
+        lcd.setOnClickListener(v -> openCurrent());
+        lcd.setOnLongClickListener(v -> {
+            showCurrentMenu();
+            return true;
+        });
+        return lcd;
     }
 
     private void buildGroups() {
@@ -319,9 +408,37 @@ public class MainActivity extends Activity {
         showEntry();
     }
 
+    /** Switches to the previous/next bank of eight pads within the section, wrapping around. */
+    private void jumpBank(int step) {
+        int size = groups.get(group).entries.size();
+        int banks = (size + BANK_SIZE - 1) / BANK_SIZE;
+        if (banks <= 1) {
+            Ui.toast(this, "This section has a single bank");
+            return;
+        }
+        remember();
+        int bank = (item / BANK_SIZE + step + banks) % banks;
+        item = bank * BANK_SIZE;
+        showEntry();
+    }
+
+    private void onPad(int index) {
+        int target = item / BANK_SIZE * BANK_SIZE + index;
+        if (target == item) openCurrent();
+        else selectPad(index);
+    }
+
+    private void selectPad(int index) {
+        int target = item / BANK_SIZE * BANK_SIZE + index;
+        if (target >= groups.get(group).entries.size() || target == item) return;
+        remember();
+        item = target;
+        showEntry();
+    }
+
     private void goBack() {
         if (history.isEmpty()) {
-            Ui.toast(this, "Nothing to go back to — hold OK for tool options");
+            Ui.toast(this, "Nothing to go back to");
             return;
         }
         int[] previous = history.pop();
@@ -334,20 +451,38 @@ public class MainActivity extends Activity {
     private void showEntry() {
         Group g = groups.get(group);
         Entry e = current();
-        lcdSection.setText(g.title);
-        lcdCounter.setText(String.format(Locale.ROOT, "  %d/%d", item + 1, g.entries.size()));
+        int bank = item / BANK_SIZE;
+        int banks = (g.entries.size() + BANK_SIZE - 1) / BANK_SIZE;
+        int tools = 0;
+        for (Entry x : g.entries) if (x.tool != null) tools++;
+
+        sectionCard.set(String.format(Locale.ROOT, "SECTION %02d / %02d", group + 1, groups.size()),
+                tools + (tools == 1 ? " tool" : " tools") + (tools < g.entries.size() ? " · notes" : ""),
+                g.title);
+
+        lcdStatus.setText(String.format(Locale.ROOT, "Tool [%d/%d]  BANK %c%s",
+                item + 1, g.entries.size(), (char) ('A' + bank % 26), banks > 1 ? "/" + banks : ""));
         if (e.tool != null) {
-            boolean cli = e.tool.termuxScript() != null;
             lcdName.setText(e.tool.name);
             lcdHost.setText("Host: " + e.tool.host());
-            lcdType.setText(cli ? "Type: CLI · Termux" : "Type: Web tool");
-            lcdDescription.setText(e.tool.description);
+            String type = e.tool.termuxScript() != null ? "CLI · Termux" : "Web tool";
+            lcdType.setText(e.tool.description.isEmpty() ? "Type: " + type : type + " · " + e.tool.description);
         } else {
             lcdName.setText("Notes & commands");
             lcdHost.setText("Host: cheat sheet");
             lcdType.setText("Type: Notes");
-            lcdDescription.setText(e.notes.trim());
         }
+
+        for (int i = 0; i < BANK_SIZE; i++) {
+            int index = bank * BANK_SIZE + i;
+            if (index < g.entries.size()) {
+                Entry pe = g.entries.get(index);
+                Panel.stylePad(pads[i], pe.padState(), index == item, pe.label());
+            } else {
+                Panel.stylePad(pads[i], Panel.PAD_STATE_EMPTY, false, "");
+            }
+        }
+        recKey.setLed(e.tool != null && favorites().contains(e.tool.url));
         prefs.edit().putInt(KEY_GROUP, group).putInt(KEY_ITEM, item).apply();
     }
 
@@ -371,6 +506,12 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void toggleFavoriteCurrent() {
+        Entry e = current();
+        if (e.tool == null) Ui.toast(this, "Notes can't be favorited");
+        else toggleFavorite(e.tool.url);
+    }
+
     // ---------------------------------------------------------------- search mode
 
     private View buildList() {
@@ -390,7 +531,7 @@ public class MainActivity extends Activity {
             }
         });
         LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(-1, -2);
-        int m = Ui.dp(this, 12);
+        int m = Ui.dp(this, 16);
         searchLp.setMargins(m, 0, m, Ui.dp(this, 8));
         column.addView(search, searchLp);
 
@@ -398,7 +539,7 @@ public class MainActivity extends Activity {
         adapter = new RowAdapter();
         list.setAdapter(adapter);
         list.setFastScrollEnabled(true);
-        list.setDivider(new ColorDrawable(Flipper.DARK));
+        list.setDivider(new ColorDrawable(Panel.SURFACE));
         list.setDividerHeight(Ui.dp(this, 1));
         list.setOnItemClickListener((parent, view, position, id) -> onRowClick(rows.get(position)));
         list.setOnItemLongClickListener((parent, view, position, id) -> {
@@ -415,9 +556,10 @@ public class MainActivity extends Activity {
     private void toggleMode() {
         boolean toList = listView.getVisibility() != View.VISIBLE;
         listView.setVisibility(toList ? View.VISIBLE : View.GONE);
-        remoteView.setVisibility(toList ? View.GONE : View.VISIBLE);
-        if (toList) modeButton.set(R.drawable.ic_dpad, "Remote");
-        else modeButton.set(R.drawable.ic_search, "Search");
+        deckView.setVisibility(toList ? View.GONE : View.VISIBLE);
+        ((ImageView) modeButton.getChildAt(0)).setImageResource(toList ? R.drawable.ic_dpad : R.drawable.ic_search);
+        ((TextView) modeButton.getChildAt(1)).setText(toList ? "DECK" : "SEARCH");
+        modeButton.setContentDescription(toList ? "Deck" : "Search");
     }
 
     @Override
@@ -447,7 +589,8 @@ public class MainActivity extends Activity {
     private void addSection(String title, List<Row> items, boolean searching) {
         if (items.isEmpty()) return;
         boolean open = searching || expanded.contains(title);
-        rows.add(new Row(ROW_HEADER, (open ? "▾ " : "▸ ") + title, String.valueOf(items.size()), null,
+        rows.add(new Row(ROW_HEADER, (open ? "▾ " : "▸ ") + title.toUpperCase(Locale.ROOT),
+                String.valueOf(items.size()), null,
                 () -> {
                     if (!expanded.remove(title)) expanded.add(title);
                     rebuildRows();
@@ -467,7 +610,7 @@ public class MainActivity extends Activity {
         if (row.action != null) {
             row.action.run();
         } else if (row.entry != null) {
-            // Keep the remote screen in sync with what was picked from the list.
+            // Keep the deck in sync with what was picked from the list.
             for (int g = 0; g < groups.size(); g++) {
                 int i = groups.get(g).entries.indexOf(row.entry);
                 if (i >= 0) {
@@ -516,6 +659,8 @@ public class MainActivity extends Activity {
     private void confirmScript(CheatSheet.Tool tool, String script) {
         EditText editor = new EditText(this);
         editor.setText(script);
+        editor.setTypeface(Flipper.pixel(this));
+        editor.setTextColor(Flipper.ORANGE);
         editor.setTextSize(18);
         editor.setHorizontallyScrolling(true);
         editor.setGravity(Gravity.TOP | Gravity.START);
@@ -582,50 +727,55 @@ public class MainActivity extends Activity {
         return nl < 0 ? text : text.substring(0, nl);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 1, 0, "Open URL");
-        menu.add(0, 2, 0, "Expand all sections");
-        menu.add(0, 3, 0, "Collapse all sections");
-        menu.add(0, 4, 0, "About");
-        return true;
+    private void showOverflow(View anchor) {
+        PopupMenu menu = new PopupMenu(this, anchor);
+        menu.getMenu().add(0, 1, 0, "Open URL");
+        menu.getMenu().add(0, 2, 0, "Expand all sections");
+        menu.getMenu().add(0, 3, 0, "Collapse all sections");
+        menu.getMenu().add(0, 4, 0, "About");
+        menu.setOnMenuItemClickListener(mi -> {
+            switch (mi.getItemId()) {
+                case 1:
+                    promptUrl();
+                    return true;
+                case 2:
+                    for (Group g : groups) expanded.add(g.title);
+                    rebuildRows();
+                    return true;
+                case 3:
+                    expanded.clear();
+                    expanded.add(FAVORITES);
+                    rebuildRows();
+                    return true;
+                default:
+                    showAbout();
+                    return true;
+            }
+        });
+        menu.show();
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case 1:
-                promptUrl();
-                return true;
-            case 2:
-                for (Group g : groups) expanded.add(g.title);
-                rebuildRows();
-                return true;
-            case 3:
-                expanded.clear();
-                expanded.add(FAVORITES);
-                rebuildRows();
-                return true;
-            case 4:
-                TextActivity.show(this, "About", "VTLOsint — all-in-one OSINT toolkit\n\n"
-                        + toolsByUrl.size() + " tools in " + sections.size() + " sections, generated from "
-                        + "README.md and awesome-article.md of the OSINT-Cheat-sheet repository.\n\n"
-                        + "REMOTE\n"
-                        + "◀ ▶  previous / next tool\n"
-                        + "▲ ▼  previous / next category\n"
-                        + "●    open the tool (hold for options)\n"
-                        + "↩    back to the tool you saw before\n\n"
-                        + "SEARCH\n"
-                        + "• Tap a web tool to open it in the built-in browser.\n"
-                        + "• Tools marked >_ Termux are command-line programs: tap to install & run them in Termux.\n"
-                        + "• Long-press any tool for Wayback, favorites, share and more.\n\n"
-                        + "Use these tools legally and ethically, only on targets you are authorized to investigate.\n\n"
-                        + "Fonts: VT323 and Silkscreen, SIL Open Font License 1.1.\n"
-                        + "Original list: https://github.com/Jieyab89/OSINT-Cheat-sheet");
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
+    private void showAbout() {
+        TextActivity.show(this, "About", "VTLOsint — all-in-one OSINT toolkit\n\n"
+                + toolsByUrl.size() + " tools in " + sections.size() + " sections, generated from "
+                + "README.md and awesome-article.md of the OSINT-Cheat-sheet repository.\n\n"
+                + "DECK\n"
+                + "Pads      the current bank of 8 tools; tap to select, tap again to open\n"
+                + "          grey = web · green = Termux · yellow = notes\n"
+                + "◀ ▶       previous / next tool\n"
+                + "▲ ▼       previous / next section (or tap the section card)\n"
+                + "●         open the tool (hold for options)\n"
+                + "BANK ◀ ▶  previous / next bank of 8\n"
+                + "REC       add/remove favorite (red LED = favorite)\n"
+                + "PLAY      open the tool\n"
+                + "STOP      back to the tool you saw before\n\n"
+                + "SEARCH\n"
+                + "• Tap a web tool to open it in the built-in browser.\n"
+                + "• Tools marked >_ Termux are command-line programs: tap to install & run them in Termux.\n"
+                + "• Long-press any tool for Wayback, favorites, share and more.\n\n"
+                + "Use these tools legally and ethically, only on targets you are authorized to investigate.\n\n"
+                + "Fonts: Montserrat and VT323, SIL Open Font License 1.1.\n"
+                + "Original list: https://github.com/Jieyab89/OSINT-Cheat-sheet");
     }
 
     @Override
@@ -646,19 +796,23 @@ public class MainActivity extends Activity {
             return row.type == ROW_HEADER ? header(row, convertView) : item(row, convertView);
         }
 
+        /** Section header in the infographic's angled blue tab. */
         private View header(Row row, View convertView) {
             LinearLayout layout = (LinearLayout) convertView;
             if (layout == null) {
                 layout = new LinearLayout(MainActivity.this);
                 layout.setGravity(Gravity.CENTER_VERTICAL);
-                layout.setBackgroundColor(Flipper.LCD);
-                int h = Ui.dp(MainActivity.this, 14), v = Ui.dp(MainActivity.this, 10);
-                layout.setPadding(h, v, h, v);
-                TextView title = Flipper.lcdText(MainActivity.this, 24, true);
-                layout.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
-                layout.addView(Flipper.lcdText(MainActivity.this, 20, false));
+                int h = Ui.dp(MainActivity.this, 16), v = Ui.dp(MainActivity.this, 10);
+                layout.setPadding(h, v, h, Ui.dp(MainActivity.this, 6));
+                TextView tab = Panel.tab(MainActivity.this, "");
+                LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(0, -2, 1f);
+                tabLp.rightMargin = Ui.dp(MainActivity.this, 40);
+                LinearLayout tabBox = new LinearLayout(MainActivity.this);
+                tabBox.addView(tab, new LinearLayout.LayoutParams(-2, -2));
+                layout.addView(tabBox, tabLp);
+                layout.addView(Panel.text(MainActivity.this, 13, Panel.BLUE, true));
             }
-            ((TextView) layout.getChildAt(0)).setText(row.title);
+            ((TextView) ((LinearLayout) layout.getChildAt(0)).getChildAt(0)).setText(row.title);
             ((TextView) layout.getChildAt(1)).setText(row.subtitle);
             return layout;
         }
@@ -668,17 +822,18 @@ public class MainActivity extends Activity {
             if (layout == null) {
                 layout = new LinearLayout(MainActivity.this);
                 layout.setOrientation(LinearLayout.VERTICAL);
-                int h = Ui.dp(MainActivity.this, 20), v = Ui.dp(MainActivity.this, 8);
+                int h = Ui.dp(MainActivity.this, 20), v = Ui.dp(MainActivity.this, 10);
                 layout.setPadding(h, v, h, v);
-                layout.addView(Ui.text(MainActivity.this, "", 16, false));
-                TextView sub = Ui.text(MainActivity.this, "", 12, false);
-                sub.setTextColor(getColor(R.color.orange_dim));
+                layout.addView(Panel.text(MainActivity.this, 16, Panel.TEXT, true));
+                TextView sub = Panel.text(MainActivity.this, 12.5f, Panel.TEXT_DIM, false);
                 sub.setMaxLines(2);
                 sub.setEllipsize(TextUtils.TruncateAt.END);
                 layout.addView(sub);
             }
             ((TextView) layout.getChildAt(0)).setText(row.title);
-            ((TextView) layout.getChildAt(1)).setText(row.subtitle);
+            TextView sub = (TextView) layout.getChildAt(1);
+            sub.setText(row.subtitle);
+            sub.setTextColor(row.subtitle.startsWith(">_") ? Panel.PAD_GREEN : Panel.TEXT_DIM);
             return layout;
         }
     }
