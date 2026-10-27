@@ -72,6 +72,7 @@ public class DorkActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.enableUp(this);
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
         int pad = Ui.dp(this, 16);
@@ -202,4 +203,9 @@ public class DorkActivity extends Activity {
                     + "Examples\n"
                     + "intext:\"hacking\" site:seccodeid.com\n"
                     + "site:www.github.com ext:doc | ext:docx | ext:odt | ext:rtf | ext:csv";
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        return Ui.handleUp(this, item) || super.onOptionsItemSelected(item);
+    }
 }

@@ -1,13 +1,14 @@
 package io.github.osintcheatsheet;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.util.TypedValue;
+import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,12 +19,24 @@ final class Ui {
                 c.getResources().getDisplayMetrics()));
     }
 
+    /** Pixel-font text; VT323 renders small, so regular text is scaled to match system-font sizes. */
     static TextView text(Context c, String value, float sp, boolean bold) {
         TextView tv = new TextView(c);
         tv.setText(value);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
+        tv.setTypeface(bold ? Flipper.title(c) : Flipper.pixel(c));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, bold ? sp : sp * 1.35f);
         return tv;
+    }
+
+    /** Shows the "<" up arrow in the orange title bar; pair with {@link #handleUp}. */
+    static void enableUp(Activity a) {
+        if (a.getActionBar() != null) a.getActionBar().setDisplayHomeAsUpEnabled(true);
+    }
+
+    static boolean handleUp(Activity a, MenuItem item) {
+        if (item.getItemId() != android.R.id.home) return false;
+        a.finish();
+        return true;
     }
 
     static void toast(Context c, String message) {

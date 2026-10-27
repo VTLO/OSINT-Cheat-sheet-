@@ -2,7 +2,7 @@
 
 An all-in-one Android app that puts **every tool listed in this repository** in your pocket.
 
-**Download:** [`release/VTLOsint.apk`](release/VTLOsint.apk) (Android 7.0+, ~100 KB, no trackers, no dependencies).
+**Download:** [`release/VTLOsint.apk`](release/VTLOsint.apk) (Android 8.0+, ~450 KB, no trackers, no dependencies).
 CI also builds a fresh APK on every change to the cheat sheet (Actions → *Android APK* → artifact).
 
 ## What it does
@@ -13,6 +13,9 @@ CI also builds a fresh APK on every change to the cheat sheet (Actions → *Andr
 | **Command-line tools** (Sherlock, Maigret, GHunt, theHarvester, recon-ng, PhoneInfoga, ExifTool, testssl.sh, every GitHub repo in the list, …) — marked ⌨ | One tap sends an install-and-run script to [Termux](https://f-droid.org/packages/com.termux/). The script is shown (and editable) before it runs |
 | **Notes & commands** (EXIF commands, dorks, Facebook/LinkedIn/MySpace queries, FQL, Shodan) | Readable, copyable note pages |
 | **Built-in tools** | Google **Dork Builder** (operators + all query templates from the cheat sheet, searches Google/Bing/DuckDuckGo/Yandex) and an **EXIF viewer/remover** (shows GPS on a map, saves a metadata-free copy — like `exiftool -all=`) |
+
+The home screen is styled like a Flipper Zero remote: an orange LCD shows one tool at a time,
+the D-pad steps through tools (◀ ▶) and categories (▲ ▼), ● opens the tool (hold for options) and ↩ goes back.
 
 Plus: instant search across all tools, collapsible categories, favorites, and the *Awesome Article* reading list.
 
