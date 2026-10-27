@@ -23,6 +23,7 @@ final class Ui {
     static TextView text(Context c, String value, float sp, boolean bold) {
         TextView tv = new TextView(c);
         tv.setText(value);
+        tv.setTextColor(Flipper.ORANGE);
         tv.setTypeface(bold ? Flipper.title(c) : Flipper.pixel(c));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, bold ? sp : sp * 1.35f);
         return tv;

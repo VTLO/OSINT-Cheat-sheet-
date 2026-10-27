@@ -189,7 +189,7 @@ public class MainActivity extends Activity {
         header.addView(lcdCounter);
         screen.addView(header);
 
-        lcdName = Flipper.lcdText(this, 22, true);
+        lcdName = Flipper.lcdText(this, 32, true);
         lcdName.setLines(2);
         lcdName.setEllipsize(TextUtils.TruncateAt.END);
         lcdName.setGravity(Gravity.CENTER_VERTICAL);
@@ -436,7 +436,7 @@ public class MainActivity extends Activity {
                     if (!searching || e.tool.matches(query)) items.add(toolRow(e));
                 } else if (!searching || e.notes.toLowerCase(Locale.ROOT).contains(query)
                         || g.title.toLowerCase(Locale.ROOT).contains(query)) {
-                    items.add(new Row(ROW_ITEM, "▤ Notes, queries & commands", firstLine(e.notes), e, null));
+                    items.add(new Row(ROW_ITEM, "≡ Notes, queries & commands", firstLine(e.notes), e, null));
                 }
             }
             addSection(g.title, items, searching);
@@ -458,7 +458,7 @@ public class MainActivity extends Activity {
     private Row toolRow(Entry e) {
         CheatSheet.Tool t = e.tool;
         boolean cli = t.termuxScript() != null;
-        String subtitle = (cli ? "⌨ Termux · " : "") + t.host()
+        String subtitle = (cli ? ">_ Termux · " : "") + t.host()
                 + (t.description.isEmpty() ? "" : " — " + t.description);
         return new Row(ROW_ITEM, t.name, subtitle, e, null);
     }
@@ -617,7 +617,7 @@ public class MainActivity extends Activity {
                         + "↩    back to the tool you saw before\n\n"
                         + "SEARCH\n"
                         + "• Tap a web tool to open it in the built-in browser.\n"
-                        + "• Tools marked ⌨ are command-line programs: tap to install & run them in Termux.\n"
+                        + "• Tools marked >_ Termux are command-line programs: tap to install & run them in Termux.\n"
                         + "• Long-press any tool for Wayback, favorites, share and more.\n\n"
                         + "Use these tools legally and ethically, only on targets you are authorized to investigate.\n\n"
                         + "Fonts: VT323 and Silkscreen, SIL Open Font License 1.1.\n"
@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
                 layout.setBackgroundColor(Flipper.LCD);
                 int h = Ui.dp(MainActivity.this, 14), v = Ui.dp(MainActivity.this, 10);
                 layout.setPadding(h, v, h, v);
-                TextView title = Flipper.lcdText(MainActivity.this, 14, true);
+                TextView title = Flipper.lcdText(MainActivity.this, 24, true);
                 layout.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
                 layout.addView(Flipper.lcdText(MainActivity.this, 20, false));
             }

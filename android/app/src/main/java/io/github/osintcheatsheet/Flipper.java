@@ -58,12 +58,13 @@ final class Flipper {
         return bezel;
     }
 
-    /** Text drawn in black on the LCD. */
+    /** Text drawn in black on the LCD; bold is the pixel font thickened, like the Flipper's bold face. */
     static TextView lcdText(Context c, float sp, boolean bold) {
         TextView tv = new TextView(c);
         tv.setTextColor(BLACK);
-        tv.setTypeface(bold ? title(c) : pixel(c));
+        tv.setTypeface(pixel(c));
         tv.setTextSize(sp);
+        tv.getPaint().setFakeBoldText(bold);
         tv.setIncludeFontPadding(false);
         return tv;
     }
@@ -72,11 +73,12 @@ final class Flipper {
     static TextView softKey(Context c, String label, View.OnClickListener click) {
         TextView key = new TextView(c);
         key.setText(label);
-        key.setTypeface(title(c));
-        key.setTextSize(15);
+        key.setTypeface(pixel(c));
+        key.getPaint().setFakeBoldText(true);
+        key.setTextSize(26);
         key.setTextColor(ORANGE);
         key.setBackgroundColor(BLACK);
-        int h = Ui.dp(c, 12), v = Ui.dp(c, 8);
+        int h = Ui.dp(c, 12), v = Ui.dp(c, 4);
         key.setPadding(h, v, h, v);
         key.setOnClickListener(view -> {
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
