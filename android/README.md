@@ -5,7 +5,7 @@ An all-in-one Android app that puts **every tool listed in this repository** in 
 **Download:** [`release/VTLOsint.apk`](release/VTLOsint.apk) (Android 8.0+, ~450 KB, no trackers, no dependencies).
 CI also builds a fresh APK on every change to the cheat sheet (Actions → *Android APK* → artifact).
 
-![VTLOsint: remote, search and dork builder](screenshots.png)
+![VTLOsint: deck and search](screenshots.png)
 
 ## What it does
 
@@ -16,8 +16,11 @@ CI also builds a fresh APK on every change to the cheat sheet (Actions → *Andr
 | **Notes & commands** (EXIF commands, dorks, Facebook/LinkedIn/MySpace queries, FQL, Shodan) | Readable, copyable note pages |
 | **Built-in tools** | Google **Dork Builder** (operators + all query templates from the cheat sheet, searches Google/Bing/DuckDuckGo/Yandex) and an **EXIF viewer/remover** (shows GPS on a map, saves a metadata-free copy — like `exiftool -all=`) |
 
-The home screen is styled like a Flipper Zero remote: an orange LCD shows one tool at a time,
-the D-pad steps through tools (◀ ▶) and categories (▲ ▼), ● opens the tool (hold for options) and ↩ goes back.
+The home screen blends a cyber-infographic, an MPC drum machine and a Flipper Zero:
+a blue-outlined section card with an angled tab, an orange pixel LCD showing the selected tool, a 4×2 pad grid
+for the current bank of 8 tools (grey = web, green = Termux, yellow = notes), and hardware controls —
+the D-pad steps through tools (◀ ▶) and sections (▲ ▼), ● opens (hold for options), BANK ◀ ▶ switches banks,
+REC toggles a favorite, PLAY opens and STOP goes back.
 
 Plus: instant search across all tools, collapsible categories, favorites, and the *Awesome Article* reading list.
 

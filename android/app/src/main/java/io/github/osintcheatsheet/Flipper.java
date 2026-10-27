@@ -81,7 +81,7 @@ final class Flipper {
         key.setText(label);
         key.setTypeface(pixel(c));
         key.getPaint().setFakeBoldText(true);
-        key.setTextSize(26);
+        key.setTextSize(22);
         key.setTextColor(ORANGE);
         key.setBackgroundColor(BLACK);
         int h = Ui.dp(c, 12), v = Ui.dp(c, 4);
@@ -106,9 +106,9 @@ final class Flipper {
         circle.setBackground(bg);
         circle.setImageResource(icon);
         circle.setImageTintList(ColorStateList.valueOf(ORANGE));
-        int pad = Ui.dp(c, 13);
+        int pad = Ui.dp(c, 11);
         circle.setPadding(pad, pad, pad, pad);
-        box.addView(circle, new LinearLayout.LayoutParams(Ui.dp(c, 52), Ui.dp(c, 52)));
+        box.addView(circle, new LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 44)));
         TextView text = new TextView(c);
         text.setText(label.toUpperCase(java.util.Locale.ROOT));
         text.setTypeface(title(c));
@@ -117,7 +117,7 @@ final class Flipper {
         text.setTextSize(11);
         text.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-        lp.topMargin = Ui.dp(c, 6);
+        lp.topMargin = Ui.dp(c, 4);
         box.addView(text, lp);
         box.setContentDescription(label);
         box.setOnClickListener(view -> {
