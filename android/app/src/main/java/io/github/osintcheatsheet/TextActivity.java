@@ -3,7 +3,6 @@ package io.github.osintcheatsheet;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.method.LinkMovementMethod;
 import android.text.util.Linkify;
@@ -30,13 +29,14 @@ public class TextActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTitle(getIntent().getStringExtra(EXTRA_TITLE));
+        Ui.enableUp(this);
         text = getIntent().getStringExtra(EXTRA_TEXT);
 
         TextView view = new TextView(this);
         int pad = Ui.dp(this, 16);
         view.setPadding(pad, pad, pad, pad);
-        view.setTypeface(Typeface.MONOSPACE);
-        view.setTextSize(13);
+        view.setTypeface(Flipper.pixel(this));
+        view.setTextSize(20);
         view.setLineSpacing(0, 1.15f);
         view.setTextIsSelectable(true);
         view.setText(text);
@@ -57,6 +57,7 @@ public class TextActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (Ui.handleUp(this, item)) return true;
         if (item.getItemId() == 1) {
             Ui.copy(this, text);
             return true;

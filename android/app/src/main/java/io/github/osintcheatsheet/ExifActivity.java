@@ -3,7 +3,6 @@ package io.github.osintcheatsheet;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Typeface;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -56,6 +55,7 @@ public class ExifActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.enableUp(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = Ui.dp(this, 16);
@@ -83,8 +83,8 @@ public class ExifActivity extends Activity {
         root.addView(actions);
 
         output = new TextView(this);
-        output.setTypeface(Typeface.MONOSPACE);
-        output.setTextSize(12);
+        output.setTypeface(Flipper.pixel(this));
+        output.setTextSize(18);
         output.setTextIsSelectable(true);
         output.setText("Pick a photo to read its EXIF metadata (camera, date, GPS, software…).\n\n"
                 + "\"Save clean copy\" removes all EXIF tags, like `exiftool -all= file`.\n\n"
@@ -177,5 +177,10 @@ public class ExifActivity extends Activity {
         byte[] buffer = new byte[16384];
         int n;
         while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        return Ui.handleUp(this, item) || super.onOptionsItemSelected(item);
     }
 }

@@ -37,12 +37,13 @@ public class BrowserActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.enableUp(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
 
         address = new EditText(this);
         address.setSingleLine(true);
-        address.setTextSize(14);
+        address.setTextSize(20);
         address.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         address.setImeOptions(EditorInfo.IME_ACTION_GO);
         address.setSelectAllOnFocus(true);
@@ -172,6 +173,7 @@ public class BrowserActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (Ui.handleUp(this, item)) return true;
         String url = web.getUrl() == null ? "" : web.getUrl();
         switch (item.getItemId()) {
             case 1: web.reload(); return true;
