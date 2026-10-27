@@ -281,7 +281,7 @@ public class MainActivity extends Activity {
                 rebuild();
                 return true;
             case 3:
-                TextActivity.show(this, "About", "OSINT Cheat Sheet — all-in-one\n\n"
+                TextActivity.show(this, "About", "VTLOsint — all-in-one OSINT toolkit\n\n"
                         + toolsByUrl.size() + " tools in " + sections.size() + " sections, generated from "
                         + "README.md and awesome-article.md of the OSINT-Cheat-sheet repository.\n\n"
                         + "• Tap a web tool to open it in the built-in browser.\n"
