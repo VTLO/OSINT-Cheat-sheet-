@@ -106,10 +106,10 @@ final class Panel {
             GradientDrawable outline = new GradientDrawable();
             outline.setStroke(Ui.dp(c, 1.5f), BLUE);
             box.setBackground(outline);
-            box.setPadding(Ui.dp(c, 16), Ui.dp(c, 24), Ui.dp(c, 16), Ui.dp(c, 12));
+            box.setPadding(Ui.dp(c, 16), Ui.dp(c, 20), Ui.dp(c, 16), Ui.dp(c, 9));
             kicker = text(c, 13, TEXT_DIM, true);
             box.addView(kicker);
-            headline = text(c, 20, TEXT, true);
+            headline = text(c, 18, TEXT, true);
             headline.setMaxLines(2);
             headline.setEllipsize(TextUtils.TruncateAt.END);
             box.addView(headline);

@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
         root.addView(buildHeader());
 
         LinearLayout top = new LinearLayout(this);
-        top.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 14), Ui.dp(this, 10));
+        top.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 14), Ui.dp(this, 6));
         modeButton = addTopButton(top, R.drawable.ic_search, "Search", v -> toggleMode());
         addTopButton(top, R.drawable.ic_globe, "Dorks", v -> startActivity(new Intent(this, DorkActivity.class)));
         addTopButton(top, R.drawable.ic_camera, "EXIF", v -> startActivity(new Intent(this, ExifActivity.class)));
@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
     private View buildHeader() {
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(Ui.dp(this, 20), Ui.dp(this, 14), Ui.dp(this, 8), 0);
+        header.setPadding(Ui.dp(this, 20), Ui.dp(this, 8), Ui.dp(this, 8), 0);
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         TextView title = Panel.text(this, 30, Panel.BLUE, true);
@@ -212,10 +212,10 @@ public class MainActivity extends Activity {
         LinearLayout chassis = new LinearLayout(this);
         chassis.setOrientation(LinearLayout.VERTICAL);
         chassis.setBackground(Panel.chassis(this));
-        int cp = Ui.dp(this, 12);
+        int cp = Ui.dp(this, 10);
         chassis.setPadding(cp, cp, cp, cp);
         LinearLayout.LayoutParams chassisLp = new LinearLayout.LayoutParams(-1, -2);
-        chassisLp.topMargin = Ui.dp(this, 14);
+        chassisLp.topMargin = Ui.dp(this, 10);
         column.addView(chassis, chassisLp);
 
         chassis.addView(buildLcd(), new LinearLayout.LayoutParams(-1, -2));
@@ -237,7 +237,7 @@ public class MainActivity extends Activity {
                     showCurrentMenu();
                     return true;
                 });
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Ui.dp(this, 60), 1f);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Ui.dp(this, 50), 1f);
                 if (c > 0) lp.leftMargin = gap;
                 row.addView(pad, lp);
                 pads[index] = pad;
@@ -247,7 +247,7 @@ public class MainActivity extends Activity {
             grid.addView(row, rowLp);
         }
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(-1, -2);
-        gridLp.topMargin = Ui.dp(this, 12);
+        gridLp.topMargin = Ui.dp(this, 10);
         chassis.addView(grid, gridLp);
 
         LinearLayout controls = new LinearLayout(this);
@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
                 showCurrentMenu();
             }
         });
-        int padSize = Ui.dp(this, 148);
+        int padSize = Ui.dp(this, 132);
         controls.addView(dpad, new LinearLayout.LayoutParams(padSize, padSize));
 
         LinearLayout right = new LinearLayout(this);
@@ -295,7 +295,7 @@ public class MainActivity extends Activity {
         controls.addView(right, rightLp);
 
         LinearLayout.LayoutParams controlsLp = new LinearLayout.LayoutParams(-1, -2);
-        controlsLp.topMargin = Ui.dp(this, 12);
+        controlsLp.topMargin = Ui.dp(this, 10);
         chassis.addView(controls, controlsLp);
 
         ScrollView scroll = new ScrollView(this);
@@ -324,8 +324,8 @@ public class MainActivity extends Activity {
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         int pad = Ui.dp(this, 10);
-        body.setPadding(pad, Ui.dp(this, 6), pad, Ui.dp(this, 8));
-        lcdName = Flipper.lcdText(this, 30, true);
+        body.setPadding(pad, Ui.dp(this, 4), pad, Ui.dp(this, 6));
+        lcdName = Flipper.lcdText(this, 28, true);
         lcdName.setSingleLine(true);
         lcdName.setEllipsize(TextUtils.TruncateAt.END);
         body.addView(lcdName);
@@ -343,7 +343,7 @@ public class MainActivity extends Activity {
         keys.addView(new Space(this), new LinearLayout.LayoutParams(0, 1, 1f));
         keys.addView(Flipper.softKey(this, "Next ▶", v -> move(1)));
         LinearLayout.LayoutParams keysLp = new LinearLayout.LayoutParams(-1, -2);
-        keysLp.topMargin = Ui.dp(this, 6);
+        keysLp.topMargin = Ui.dp(this, 4);
         body.addView(keys, keysLp);
         screen.addView(body);
 
