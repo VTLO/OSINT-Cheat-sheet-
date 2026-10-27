@@ -19,13 +19,9 @@ final class Ui {
                 c.getResources().getDisplayMetrics()));
     }
 
-    /** Pixel-font text; VT323 renders small, so regular text is scaled to match system-font sizes. */
     static TextView text(Context c, String value, float sp, boolean bold) {
-        TextView tv = new TextView(c);
+        TextView tv = Panel.text(c, sp, bold ? Panel.TEXT : Panel.TEXT_DIM, bold);
         tv.setText(value);
-        tv.setTextColor(Flipper.ORANGE);
-        tv.setTypeface(bold ? Flipper.title(c) : Flipper.pixel(c));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, bold ? sp : sp * 1.35f);
         return tv;
     }
 

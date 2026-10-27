@@ -84,6 +84,7 @@ public class ExifActivity extends Activity {
 
         output = new TextView(this);
         output.setTypeface(Flipper.pixel(this));
+        output.setTextColor(Flipper.ORANGE);
         output.setTextSize(18);
         output.setTextIsSelectable(true);
         output.setText("Pick a photo to read its EXIF metadata (camera, date, GPS, software…).\n\n"

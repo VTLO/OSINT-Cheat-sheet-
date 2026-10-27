@@ -19,22 +19,28 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Flipper Zero–style widgets: orange LCD panel, round icon buttons, D-pad and back button. */
+/** Flipper Zero–style widgets: orange pixel LCD, round icon buttons and the D-pad. */
 final class Flipper {
 
     static final int ORANGE = 0xFFFF8200;
     static final int ORANGE_PRESSED = 0xFFC86400;
     static final int LCD = 0xFFFF8C1F;
-    static final int DARK = 0xFF2E1700;
+    static final int LCD_BAR = 0xFFE87400;
     static final int BORDER = 0xFF7A3D00;
     static final int BLACK = 0xFF000000;
+    static final int BEZEL = 0xFF2B2F36;
+    static final int BEZEL_EDGE = 0xFF4A505A;
 
     static Typeface pixel(Context c) {
         return c.getResources().getFont(R.font.vt323);
     }
 
     static Typeface title(Context c) {
-        return c.getResources().getFont(R.font.silkscreen_bold);
+        return c.getResources().getFont(R.font.montserrat_bold);
+    }
+
+    static Typeface sans(Context c) {
+        return c.getResources().getFont(R.font.montserrat_medium);
     }
 
     static GradientDrawable rounded(int fill, int strokeDp, int strokeColor, float radiusDp, Context c) {
@@ -45,15 +51,15 @@ final class Flipper {
         return d;
     }
 
-    /** Wraps content in the black-bezel, orange-screen LCD frame. */
+    /** Wraps content in an MPC-style grey bezel around the orange Flipper screen. */
     static View lcd(Context c, View content) {
         FrameLayout bezel = new FrameLayout(c);
-        bezel.setBackground(rounded(BLACK, 3, BORDER, 22, c));
-        int gap = Ui.dp(c, 6);
+        bezel.setBackground(rounded(BEZEL, 2, BEZEL_EDGE, 10, c));
+        int gap = Ui.dp(c, 7);
         bezel.setPadding(gap, gap, gap, gap);
-        content.setBackground(rounded(LCD, 0, 0, 16, c));
-        int pad = Ui.dp(c, 14);
-        content.setPadding(pad, Ui.dp(c, 10), pad, Ui.dp(c, 12));
+        content.setBackground(rounded(LCD, 2, BLACK, 6, c));
+        int pad = Ui.dp(c, 2);
+        content.setPadding(pad, pad, pad, pad);
         bezel.addView(content, new FrameLayout.LayoutParams(-1, -2));
         return bezel;
     }
@@ -87,7 +93,7 @@ final class Flipper {
         return key;
     }
 
-    /** Round dark button with an orange icon and an orange label underneath. */
+    /** Round dark button with an orange icon and a label underneath. */
     static LinearLayout iconButton(Context c, int icon, String label, View.OnClickListener click) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -95,17 +101,20 @@ final class Flipper {
         ImageView circle = new ImageView(c);
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(DARK);
+        bg.setColor(Panel.SURFACE);
+        bg.setStroke(Ui.dp(c, 1.5f), Panel.BLUE_DIM);
         circle.setBackground(bg);
         circle.setImageResource(icon);
         circle.setImageTintList(ColorStateList.valueOf(ORANGE));
-        int pad = Ui.dp(c, 15);
+        int pad = Ui.dp(c, 13);
         circle.setPadding(pad, pad, pad, pad);
-        box.addView(circle, new LinearLayout.LayoutParams(Ui.dp(c, 60), Ui.dp(c, 60)));
+        box.addView(circle, new LinearLayout.LayoutParams(Ui.dp(c, 52), Ui.dp(c, 52)));
         TextView text = new TextView(c);
-        text.setText(label);
-        text.setTextColor(ORANGE);
-        text.setTextSize(21);
+        text.setText(label.toUpperCase(java.util.Locale.ROOT));
+        text.setTypeface(title(c));
+        text.setLetterSpacing(0.06f);
+        text.setTextColor(Panel.TEXT_DIM);
+        text.setTextSize(11);
         text.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.topMargin = Ui.dp(c, 6);
@@ -116,20 +125,6 @@ final class Flipper {
             click.onClick(view);
         });
         return box;
-    }
-
-    /** Italic pixel wordmark, like the "FLIPPER" logo under the screen. */
-    static TextView wordmark(Context c, String text) {
-        TextView tv = new TextView(c);
-        tv.setText(text);
-        tv.setTypeface(title(c));
-        tv.setTextSize(30);
-        tv.setTextColor(ORANGE);
-        tv.setLetterSpacing(0.08f);
-        tv.getPaint().setTextSkewX(-0.3f);
-        tv.setGravity(Gravity.CENTER);
-        tv.setPadding(0, 0, Ui.dp(c, 12), 0);
-        return tv;
     }
 
     /** Circular directional pad: four arrows around an OK button. */
@@ -276,54 +271,6 @@ final class Flipper {
         protected void onDetachedFromWindow() {
             handler.removeCallbacksAndMessages(null);
             super.onDetachedFromWindow();
-        }
-    }
-
-    /** Round orange button with a return arrow. */
-    static final class BackButton extends View {
-        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path arrow = new Path();
-        private final RectF turnBox = new RectF();
-
-        BackButton(Context c) {
-            super(c);
-            stroke.setStyle(Paint.Style.STROKE);
-            stroke.setStrokeCap(Paint.Cap.ROUND);
-            stroke.setStrokeJoin(Paint.Join.ROUND);
-            setClickable(true);
-            setContentDescription("Back");
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            float cx = getWidth() / 2f, cy = getHeight() / 2f;
-            float r = Math.min(cx, cy) - Ui.dp(getContext(), 3);
-            fill.setColor(isPressed() ? ORANGE_PRESSED : ORANGE);
-            canvas.drawCircle(cx, cy, r, fill);
-            stroke.setColor(BORDER);
-            stroke.setStrokeWidth(Ui.dp(getContext(), 4));
-            canvas.drawCircle(cx, cy, r, stroke);
-
-            float top = cy - r * 0.22f, bottom = cy + r * 0.3f, turn = r * 0.26f;
-            arrow.reset();
-            arrow.moveTo(cx - r * 0.42f, top);
-            arrow.lineTo(cx + r * 0.12f, top);
-            turnBox.set(cx + r * 0.12f - turn, top, cx + r * 0.12f + turn, bottom);
-            arrow.arcTo(turnBox, -90, 180);
-            arrow.lineTo(cx - r * 0.3f, bottom);
-            arrow.moveTo(cx - r * 0.2f, top - r * 0.2f);
-            arrow.lineTo(cx - r * 0.42f, top);
-            arrow.lineTo(cx - r * 0.2f, top + r * 0.2f);
-            stroke.setColor(BLACK);
-            stroke.setStrokeWidth(Ui.dp(getContext(), 3.5f));
-            canvas.drawPath(arrow, stroke);
-        }
-
-        @Override
-        protected void drawableStateChanged() {
-            super.drawableStateChanged();
-            invalidate();
         }
     }
 

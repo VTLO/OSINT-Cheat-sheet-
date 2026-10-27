@@ -36,6 +36,7 @@ public class TextActivity extends Activity {
         int pad = Ui.dp(this, 16);
         view.setPadding(pad, pad, pad, pad);
         view.setTypeface(Flipper.pixel(this));
+        view.setTextColor(Flipper.ORANGE);
         view.setTextSize(20);
         view.setLineSpacing(0, 1.15f);
         view.setTextIsSelectable(true);

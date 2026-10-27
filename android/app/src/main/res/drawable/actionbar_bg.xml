@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Charcoal bar with a thin blue rule underneath, like the infographic's outlines. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape><solid android:color="@color/blue" /></shape></item>
+    <item android:bottom="1.5dp"><shape><solid android:color="@color/bg" /></shape></item>
+</layer-list>
