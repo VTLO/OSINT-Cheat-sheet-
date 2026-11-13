@@ -1,0 +1,10 @@
+{
+  "name": "VTLOsint",
+  "short_name": "VTLOsint",
+  "description": "All-in-one OSINT toolkit",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#171B22",
+  "theme_color": "#171B22",
+  "icons": [{ "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }]
+}

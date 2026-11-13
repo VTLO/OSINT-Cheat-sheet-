@@ -1,7 +1,8 @@
 # OSINT CHEAT SHEET - List OSINT Tools
 
 [![Github Badge](https://img.shields.io/badge/-Jieyab89-black?style=flat&logo=github&logoColor=white&link=https://github.com/Jieyab89/)](https://github.com/Jieyab89)
-[![Android APK](https://img.shields.io/badge/VTLOsint-Android%20APK-3DDC84?style=flat&logo=android&logoColor=white)](android/)
+[![Android APK](https://img.shields.io/badge/VTLOsint-Android%20APK-3DDC84?style=flat&logo=android&logoColor=white)](downloads/)
+[![PC web app](https://img.shields.io/badge/VTLOsint-PC%20web%20app-2F9BEF?style=flat&logo=googlechrome&logoColor=white)](downloads/)
 
 # EXIF TOOL COMMAND
 

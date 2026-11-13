@@ -2,8 +2,9 @@
 
 An all-in-one Android app that puts **every tool listed in this repository** in your pocket.
 
-**Download:** [`release/VTLOsint.apk`](release/VTLOsint.apk) (Android 8.0+, ~450 KB, no trackers, no dependencies).
-CI also builds a fresh APK on every change to the cheat sheet (Actions → *Android APK* → artifact).
+**Download:** [`../downloads/VTLOsint.apk`](../downloads/VTLOsint.apk) (Android 8.0+, ~800 KB, no trackers, no dependencies).
+A PC version is in [`../web`](../web).
+CI also builds a fresh APK on every change to the cheat sheet (Actions → *VTLOsint builds* → artifacts).
 
 ![VTLOsint: deck and search](screenshots.png)
 
@@ -21,6 +22,8 @@ a blue-outlined section card with an angled tab, an orange pixel LCD showing the
 for the current bank of 8 tools (grey = web, green = Termux, yellow = notes), and hardware controls —
 the D-pad steps through tools (◀ ▶) and sections (▲ ▼), ● opens (hold for options), BANK ◀ ▶ switches banks,
 REC toggles a favorite, PLAY opens and STOP goes back.
+
+A short animated guide in French explains the controls at first launch (and from the ⋮ menu).
 
 Plus: instant search across all tools, collapsible categories, favorites, and the *Awesome Article* reading list.
 

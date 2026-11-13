@@ -160,6 +160,9 @@ public class MainActivity extends Activity {
 
         setContentView(root);
         showEntry();
+        if (savedInstanceState == null && !prefs.getBoolean(GuideActivity.KEY_SEEN, false)) {
+            startActivity(new Intent(this, GuideActivity.class));
+        }
     }
 
     /** Infographic-style title block with an overflow menu. */
@@ -732,6 +735,7 @@ public class MainActivity extends Activity {
         menu.getMenu().add(0, 1, 0, "Open URL");
         menu.getMenu().add(0, 2, 0, "Expand all sections");
         menu.getMenu().add(0, 3, 0, "Collapse all sections");
+        menu.getMenu().add(0, 5, 0, "Guide (FR)");
         menu.getMenu().add(0, 4, 0, "About");
         menu.setOnMenuItemClickListener(mi -> {
             switch (mi.getItemId()) {
@@ -746,6 +750,9 @@ public class MainActivity extends Activity {
                     expanded.clear();
                     expanded.add(FAVORITES);
                     rebuildRows();
+                    return true;
+                case 5:
+                    startActivity(new Intent(this, GuideActivity.class));
                     return true;
                 default:
                     showAbout();
