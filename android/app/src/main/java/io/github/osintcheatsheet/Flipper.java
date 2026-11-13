@@ -175,6 +175,12 @@ final class Flipper {
             this.listener = listener;
         }
 
+        /** Lights up one key without a touch, for the animated guide; NONE clears it. */
+        void highlight(int key) {
+            pressed = key;
+            invalidate();
+        }
+
         private float radius() {
             return Math.min(getWidth(), getHeight()) / 2f - Ui.dp(getContext(), 4);
         }

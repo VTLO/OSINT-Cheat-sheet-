@@ -1,4 +1,4 @@
-name: Android APK
+name: VTLOsint builds
 
 on:
   push:
@@ -6,16 +6,20 @@ on:
       - README.md
       - awesome-article.md
       - android/**
+      - web/build.py
+      - web/src/**
       - .github/workflows/android.yml
   pull_request:
     paths:
       - README.md
       - awesome-article.md
       - android/**
+      - web/build.py
+      - web/src/**
   workflow_dispatch:
 
 jobs:
-  build:
+  android:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,3 +36,14 @@ jobs:
         with:
           name: VTLOsint-apk
           path: android/app/build/outputs/apk/release/app-release.apk
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PC web app
+        run: python3 web/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VTLOsint-web
+          path: web/dist

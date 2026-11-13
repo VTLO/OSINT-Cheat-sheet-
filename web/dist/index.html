@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VTLOsint</title>
+<meta name="description" content="VTLOsint — all-in-one OSINT toolkit">
+<meta name="theme-color" content="#171B22">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="circuit" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">
+    <h1>VTLOSINT</h1>
+    <p id="subtitle">OSINT TOOLKIT</p>
+  </div>
+  <nav class="icons">
+    <button class="icon-btn" data-action="search" title="Search (/)"><svg viewBox="0 0 24 24"><path d="M16,10A6,6 0,1 1,4 10A6,6 0,1 1,16 10M14.5,14.5L20,20"/></svg><span>Search</span></button>
+    <button class="icon-btn" data-action="dorks" title="Google dork builder"><svg viewBox="0 0 24 24"><path d="M21,12A9,9 0,1 1,3 12A9,9 0,1 1,21 12M12,3C8,7 8,17 12,21M12,3C16,7 16,17 12,21M3,12H21M5,7.5H19M5,16.5H19"/></svg><span>Dorks</span></button>
+    <button class="icon-btn" data-action="exif" title="EXIF viewer / remover"><svg viewBox="0 0 24 24"><path d="M3,8H7L9,5H15L17,8H21V19H3ZM15.5,13A3.5,3.5 0,1 1,8.5 13A3.5,3.5 0,1 1,15.5 13"/></svg><span>EXIF</span></button>
+    <button class="icon-btn" data-action="guide" title="Guide (FR)"><svg viewBox="0 0 24 24"><path d="M12,21A9,9 0,1 1,12 3A9,9 0,1 1,12 21M9.5,9.5A2.5,2.5 0,1 1,13 11.8C12.3,12.2 12,12.7 12,13.5M12,16.8V17"/></svg><span>Guide</span></button>
+  </nav>
+</header>
+
+<main class="layout">
+  <section class="deck" aria-label="Deck">
+    <div class="chassis">
+      <div class="bezel">
+        <div class="lcd" id="lcd" tabindex="0" title="Click to open · right-click for options">
+          <div class="lcd-status" id="lcd-status"></div>
+          <div class="lcd-body">
+            <div class="lcd-name" id="lcd-name"></div>
+            <div class="lcd-line" id="lcd-host"></div>
+            <div class="lcd-line" id="lcd-type"></div>
+            <div class="softkeys">
+              <button class="softkey" data-move="-1">◀ Prev.</button>
+              <button class="softkey" data-move="1">Next ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pads" id="pads"></div>
+      <div class="controls">
+        <svg class="dpad" id="dpad" viewBox="0 0 200 200" role="group" aria-label="Navigation pad">
+          <circle cx="100" cy="100" r="96" class="dpad-base"/>
+          <path class="dpad-zone" data-key="up" d="M100,100 L32.1,32.1 A96,96 0 0,1 167.9,32.1 Z"/>
+          <path class="dpad-zone" data-key="right" d="M100,100 L167.9,32.1 A96,96 0 0,1 167.9,167.9 Z"/>
+          <path class="dpad-zone" data-key="down" d="M100,100 L167.9,167.9 A96,96 0 0,1 32.1,167.9 Z"/>
+          <path class="dpad-zone" data-key="left" d="M100,100 L32.1,167.9 A96,96 0 0,1 32.1,32.1 Z"/>
+          <circle cx="100" cy="100" r="30" class="dpad-zone dpad-ok" data-key="ok"/>
+          <circle cx="100" cy="100" r="96" class="dpad-rim"/>
+          <g class="dpad-glyphs">
+            <circle cx="100" cy="100" r="26"/>
+            <path d="M100,20 L117,46 L83,46 Z"/>
+            <path d="M180,100 L154,117 L154,83 Z"/>
+            <path d="M100,180 L83,154 L117,154 Z"/>
+            <path d="M20,100 L46,83 L46,117 Z"/>
+          </g>
+        </svg>
+        <div class="right-controls">
+          <div class="banks">
+            <button class="pill" data-bank="-1"><span>BANK ◀</span><i></i></button>
+            <button class="pill orange" data-bank="1"><span>BANK ▶</span><i></i></button>
+          </div>
+          <div class="transport">
+            <button class="tkey rec" id="rec" data-transport="rec"><span><b class="led" id="rec-led"></b>REC</span><i></i></button>
+            <button class="tkey" data-transport="play"><span><b class="led on-green"></b>PLAY</span><i></i></button>
+            <button class="tkey" data-transport="stop"><span>STOP</span><i></i></button>
+          </div>
+          <p class="keys-hint">← → tool · ↑ ↓ section · Enter open · F favorite · Backspace back · / search</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="browser" aria-label="Tools">
+    <div class="card">
+      <span class="tab" id="card-tab"></span>
+      <p class="kicker" id="card-kicker"></p>
+      <h2 id="card-title"></h2>
+    </div>
+    <input id="search" type="search" placeholder="Search tools…" autocomplete="off">
+    <div class="list" id="list"></div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button class="modal-close" aria-label="Close">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="guide" id="guide" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
