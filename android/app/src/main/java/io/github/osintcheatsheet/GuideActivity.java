@@ -411,7 +411,7 @@ public class GuideActivity extends Activity {
 
         public String body() {
             return "Utilisez ces outils légalement, uniquement sur des cibles que vous êtes autorisé à étudier. "
-                    + "Ce guide reste disponible dans le menu ⋮.";
+                    + "Ce guide reste disponible dans le menu (les trois points en haut à droite).";
         }
 
         public View build(Context c) {
