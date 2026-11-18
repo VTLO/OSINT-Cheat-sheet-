@@ -42,6 +42,7 @@
             android:name=".ExifActivity"
             android:label="@string/exif_tool" />
         <activity android:name=".TextActivity" />
+        <activity android:name=".PhaseActivity" />
         <activity
             android:name=".GuideActivity"
             android:theme="@style/AppTheme.Home" />

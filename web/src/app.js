@@ -1,9 +1,7 @@
-/* VTLOsint web app — same deck as the Android app: section card, LCD, 8-pad banks, D-pad, REC/PLAY/STOP. */
+/* VTLOsint web app — the investigation pipeline: phases along a circuit spine, then sections and tools. */
 (function () {
   "use strict";
 
-  const BANK = 8;
-  const FAVORITES = "Favorites";
   const store = {
     get(key, fallback) {
       try { const v = localStorage.getItem("vtlo." + key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
@@ -34,7 +32,7 @@
   }
 
   function copy(text) {
-    navigator.clipboard.writeText(text).then(() => toast("Copied to clipboard"), () => toast("Copy failed"));
+    navigator.clipboard.writeText(text).then(() => toast("Copié dans le presse-papiers"), () => toast("Copie impossible"));
   }
 
   function host(url) {
@@ -43,36 +41,60 @@
 
   // ------------------------------------------------------------------ data
 
-  const sections = window.VTLO_DATA.sections;
+  const { phases, sections } = window.VTLO_DATA;
   const toolsByUrl = new Map();
   for (const s of sections) for (const t of s.tools) if (!toolsByUrl.has(t.url)) toolsByUrl.set(t.url, t);
-  $("subtitle").textContent = `OSINT TOOLKIT · ${toolsByUrl.size} TOOLS · ${sections.length} SECTIONS`;
-  $("search").placeholder = `Search ${toolsByUrl.size} tools…`;
+  for (const p of phases) {
+    p.sections = sections.filter((s) => s.phase === p.id);
+    p.tools = p.sections.reduce((n, s) => n + s.tools.length, 0);
+  }
+  $("stats").textContent = `${toolsByUrl.size} OUTILS · ${sections.length} SECTIONS · ${phases.length} PHASES`;
+  $("search").placeholder = `Rechercher parmi ${toolsByUrl.size} outils…`;
 
-  let groups = [];
-  function buildGroups() {
-    groups = [];
-    const favs = store.get("favorites", []).map((u) => toolsByUrl.get(u)).filter(Boolean);
-    if (favs.length) groups.push({ title: FAVORITES, entries: favs.map((t) => ({ section: FAVORITES, tool: t })) });
-    for (const s of sections) {
-      const entries = [];
-      if (s.notes) entries.push({ section: s.title, notes: s.notes });
-      for (const t of s.tools) entries.push({ section: s.title, tool: t });
-      groups.push({ title: s.title, entries });
+  const favorites = () => store.get("favorites", []);
+  const isFavorite = (tool) => favorites().includes(tool.url);
+  function toggleFavorite(tool) {
+    const favs = favorites();
+    const i = favs.indexOf(tool.url);
+    if (i >= 0) favs.splice(i, 1); else favs.push(tool.url);
+    store.set("favorites", favs);
+    toast(i >= 0 ? "Retiré des favoris" : "Ajouté aux favoris");
+    route();
+  }
+
+  // Phase illustrations, drawn like the infographic's grey shapes with a blue accent.
+  const ICONS = {
+    radar: [["#9AA3AF", "M32,6 L50.4,13.6 L58,32 L50.4,50.4 L32,58 L13.6,50.4 L6,32 L13.6,13.6 Z"], ["#2A303B", "M32,12a20,20 0,1 1,0 40a20,20 0,1 1,0 -40z"],
+      ["none", "M32,18a14,14 0,1 1,0 28a14,14 0,1 1,0 -28zM32,25a7,7 0,1 1,0 14a7,7 0,1 1,0 -14z", "#5C6675"], ["#2F9BEF", "M32,32 L32,12 A20,20 0,0 1,50 23 Z"],
+      ["none", "M32,2V12M32,52V62M2,32H12M52,32H62", "#C9CED6"]],
+    identity: [["#9AA3AF", "M8,14h48v36h-48z"], ["#2A303B", "M11,17h42v30h-42z"], ["#2F9BEF", "M23,24a6,6 0,1 1,0 12a6,6 0,1 1,0 -12zM13,45c0,-6 4,-9 10,-9s10,3 10,9z"],
+      ["#9AA3AF", "M37,24h12v3h-12zM37,31h12v3h-12zM37,38h8v3h-8z"]],
+    network: [["none", "M32,32L14,14M32,32L52,16M32,32L12,50M32,32L50,52M14,14L52,16M12,50L50,52", "#5C6675"],
+      ["#9AA3AF", "M14,8a6,6 0,1 1,0 12a6,6 0,1 1,0 -12zM52,10a6,6 0,1 1,0 12a6,6 0,1 1,0 -12zM12,44a6,6 0,1 1,0 12a6,6 0,1 1,0 -12zM50,46a6,6 0,1 1,0 12a6,6 0,1 1,0 -12z"],
+      ["#2F9BEF", "M32,23a9,9 0,1 1,0 18a9,9 0,1 1,0 -18z"]],
+    media: [["#9AA3AF", "M6,12h44v34h-44z"], ["#2A303B", "M9,15h38v28h-38z"], ["#5C6675", "M9,43L22,27L32,37L38,31L47,43z"], ["#C9CED6", "M38,19a4,4 0,1 1,0 8a4,4 0,1 1,0 -8z"],
+      ["#2F9BEF", "M48,30c-6,0 -10,4.5 -10,10c0,7 10,18 10,18s10,-11 10,-18c0,-5.5 -4,-10 -10,-10zM48,36a4,4 0,1 1,0 8a4,4 0,1 1,0 -8z"]],
+    stack: [["#C9CED6", "M32,40L54,48L32,56L10,48Z"], ["#5C6675", "M10,48L32,56V60L10,52Z"], ["#9AA3AF", "M32,56L54,48V52L32,60Z"], ["#9AA3AF", "M32,26L54,34L32,42L10,34Z"],
+      ["#5C6675", "M10,34L32,42V46L10,38Z"], ["#C9CED6", "M32,42L54,34V38L32,46Z"], ["#2F9BEF", "M32,12L54,20L32,28L10,20Z"], ["#1F5F94", "M10,20L32,28V32L10,24Z"],
+      ["#2580C9", "M32,28L54,20V24L32,32Z"]],
+    funnel: [["#5C6675", "M2,10h7v6h-7zM12,10h7v6h-7zM45,10h7v6h-7z"], ["#C9CED6", "M22,10h7v6h-7zM55,10h7v6h-7z"], ["#9AA3AF", "M10,22H54L38,40V54L26,58V40Z"],
+      ["#2F9BEF", "M14,24H50L42,32H22Z"], ["#2F9BEF", "M52,46h8v8h-8z"]],
+  };
+  function icon(name) {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 64 64");
+    svg.setAttribute("class", "icon");
+    svg.setAttribute("aria-hidden", "true");
+    for (const [fill, d, stroke] of ICONS[name] || ICONS.funnel) {
+      const path = document.createElementNS(NS, "path");
+      path.setAttribute("d", d);
+      path.setAttribute("fill", fill);
+      if (stroke) { path.setAttribute("stroke", stroke); path.setAttribute("stroke-width", "1.8"); }
+      svg.append(path);
     }
+    return svg;
   }
-  buildGroups();
-
-  let group = store.get("group", 0);
-  let item = store.get("item", 0);
-  const history = [];
-  function clamp() {
-    if (!(group >= 0 && group < groups.length)) group = 0;
-    if (!(item >= 0 && item < groups[group].entries.length)) item = 0;
-  }
-  clamp();
-  const current = () => groups[group].entries[item];
-  const isFavorite = (tool) => store.get("favorites", []).includes(tool.url);
 
   // ------------------------------------------------------------------ command-line tools
 
@@ -139,194 +161,111 @@
       + "echo; echo \"[+] Installed in $(pwd) - see README.md for usage\"; ls";
   }
 
-  // ------------------------------------------------------------------ deck
+  // ------------------------------------------------------------------ building blocks
 
-  const padsBox = $("pads");
-  const pads = [];
-  for (let i = 0; i < BANK; i++) {
-    const pad = el("button", { class: "pad", onclick: () => onPad(i), oncontextmenu: (e) => { e.preventDefault(); select(i); showMenu(); } });
-    pads.push(pad);
-    padsBox.append(pad);
+  function card(tabText, ...children) {
+    return el("div", { class: "card" }, el("span", { class: "tab", text: tabText }), ...children);
   }
 
-  function padClass(entry) {
-    if (!entry) return "empty";
-    if (!entry.tool) return "notes";
-    return cliInfo(entry.tool) ? "cli" : "web";
+  function heading(kicker, headline, body) {
+    return [kicker && el("p", { class: "kicker", text: kicker }), el("h2", { text: headline }), body && el("p", { class: "body", text: body })];
   }
 
-  function remember() {
-    history.push([group, item]);
-    if (history.length > 50) history.shift();
+  function step(side, row, content) {
+    const s = el("div", { class: "step " + side }, el("span", { class: "wire" }), el("span", { class: "node" }), content);
+    if (row) s.style.gridRow = `${row} / span 2`;
+    return s;
   }
 
-  function render() {
-    clamp();
-    const g = groups[group];
-    const e = current();
-    const bank = Math.floor(item / BANK);
-    const banks = Math.ceil(g.entries.length / BANK);
-    const tools = g.entries.filter((x) => x.tool).length;
+  function toolRow(tool) {
+    const term = !!cliInfo(tool);
+    return el("button", { class: "row", title: tool.url, onclick: () => openTool(tool),
+      oncontextmenu: (e) => { e.preventDefault(); showMenu(tool); } },
+      el("span", { class: "texts" }, el("strong", { text: tool.name }),
+        el("small", { text: host(tool.url) + (tool.description ? " — " + tool.description : "") })),
+      el("span", { class: "tag" + (term ? " term" : ""), text: term ? ">_ TERMINAL" : "WEB" }),
+      el("span", { class: "opts", title: "Options", "aria-label": "Options", role: "button",
+        onclick: (e) => { e.stopPropagation(); showMenu(tool); }, text: "⋯" }));
+  }
 
-    $("card-tab").textContent = `SECTION ${String(group + 1).padStart(2, "0")} / ${String(groups.length).padStart(2, "0")}`;
-    $("card-kicker").textContent = `${tools} ${tools === 1 ? "tool" : "tools"}${tools < g.entries.length ? " · notes" : ""}`;
-    $("card-title").textContent = g.title;
-
-    $("lcd-status").textContent = `Tool [${item + 1}/${g.entries.length}]  BANK ${String.fromCharCode(65 + (bank % 26))}${banks > 1 ? "/" + banks : ""}`;
-    if (e.tool) {
-      const cli = cliInfo(e.tool);
-      $("lcd-name").textContent = e.tool.name;
-      $("lcd-host").textContent = "Host: " + host(e.tool.url);
-      const type = cli ? "CLI · Terminal" : "Web tool";
-      $("lcd-type").textContent = e.tool.description ? `${type} · ${e.tool.description}` : "Type: " + type;
-    } else {
-      $("lcd-name").textContent = "Notes & commands";
-      $("lcd-host").textContent = "Host: cheat sheet";
-      $("lcd-type").textContent = "Type: Notes";
+  /** A section as a tabbed card of tool rows, or null when the query matches nothing in it. */
+  function sectionCard(section, query, tabText) {
+    const rows = [];
+    if (section.notes && (!query || section.notes.toLowerCase().includes(query) || section.title.toLowerCase().includes(query))) {
+      rows.push(el("button", { class: "row", onclick: () => showNotes(section) },
+        el("span", { class: "texts" }, el("strong", { text: "≡ Notes, requêtes et commandes" }), el("small", { text: section.notes.split("\n")[0] }))));
     }
-
-    for (let i = 0; i < BANK; i++) {
-      const entry = g.entries[bank * BANK + i];
-      const pad = pads[i];
-      pad.className = "pad " + padClass(entry) + (bank * BANK + i === item ? " selected" : "");
-      pad.textContent = entry ? (entry.tool ? entry.tool.name : "Notes") : "";
-      pad.disabled = !entry;
-      pad.title = entry && entry.tool ? entry.tool.name + " — " + host(entry.tool.url) : "";
+    for (const t of section.tools) {
+      if (query && ![t.name, t.url, t.description, section.title].some((x) => x && x.toLowerCase().includes(query))) continue;
+      rows.push(toolRow(t));
     }
-    $("rec-led").className = "led" + (e.tool && isFavorite(e.tool) ? " on-red" : "");
-    store.set("group", group);
-    store.set("item", item);
-    renderList();
+    if (!rows.length) return null;
+    return { count: rows.length, node: card(tabText || section.title.toUpperCase(), el("div", { class: "rows" }, rows)) };
   }
 
-  function move(step) {
-    remember();
-    item += step;
-    if (item < 0) { group = (group - 1 + groups.length) % groups.length; item = groups[group].entries.length - 1; }
-    else if (item >= groups[group].entries.length) { group = (group + 1) % groups.length; item = 0; }
-    render();
-  }
-  function jumpGroup(step) { remember(); group = (group + step + groups.length) % groups.length; item = 0; render(); }
-  function jumpBank(step) {
-    const banks = Math.ceil(groups[group].entries.length / BANK);
-    if (banks <= 1) return toast("This section has a single bank");
-    remember();
-    item = (((Math.floor(item / BANK) + step) % banks + banks) % banks) * BANK;
-    render();
-  }
-  function select(i) {
-    const target = Math.floor(item / BANK) * BANK + i;
-    if (target >= groups[group].entries.length || target === item) return;
-    remember();
-    item = target;
-    render();
-  }
-  function onPad(i) {
-    if (Math.floor(item / BANK) * BANK + i === item) open(current());
-    else select(i);
-  }
-  function goBack() {
-    if (!history.length) return toast("Nothing to go back to");
-    [group, item] = history.pop();
-    render();
-  }
+  // ------------------------------------------------------------------ views
 
-  function open(entry) {
-    if (!entry.tool) return showNotes(entry);
-    if (cliInfo(entry.tool)) return showMenu(entry.tool);
-    window.open(entry.tool.url, "_blank", "noopener");
-  }
-
-  function toggleFavorite() {
-    const e = current();
-    if (!e.tool) return toast("Notes can't be favorited");
-    const favs = store.get("favorites", []);
-    const i = favs.indexOf(e.tool.url);
-    if (i >= 0) favs.splice(i, 1); else favs.push(e.tool.url);
-    store.set("favorites", favs);
-    const shown = e;
-    buildGroups();
-    history.length = 0;
-    group = 0; item = 0;
-    groups.forEach((g, gi) => g.entries.forEach((x, xi) => {
-      if (x.section === shown.section && x.tool && x.tool.url === shown.tool.url) { group = gi; item = xi; }
-    }));
-    render();
-    toast(i >= 0 ? "Removed from favorites" : "Added to favorites");
-  }
-
-  // D-pad
-  const dpad = $("dpad");
-  dpad.addEventListener("click", (ev) => {
-    const key = ev.target.getAttribute && ev.target.getAttribute("data-key");
-    ({ up: () => jumpGroup(-1), down: () => jumpGroup(1), left: () => move(-1), right: () => move(1), ok: () => open(current()) }[key] || (() => {}))();
-  });
-  dpad.addEventListener("contextmenu", (ev) => {
-    if (ev.target.getAttribute("data-key") === "ok") { ev.preventDefault(); showMenu(); }
-  });
-  function flashKey(key) {
-    const zone = dpad.querySelector(`[data-key="${key}"]`);
-    if (!zone) return;
-    zone.classList.add("active");
-    setTimeout(() => zone.classList.remove("active"), 140);
-  }
-
-  document.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); move(+b.dataset.move); }));
-  document.querySelectorAll("[data-bank]").forEach((b) => b.addEventListener("click", () => jumpBank(+b.dataset.bank)));
-  document.querySelector('[data-transport="rec"]').addEventListener("click", toggleFavorite);
-  document.querySelector('[data-transport="play"]').addEventListener("click", () => open(current()));
-  document.querySelector('[data-transport="stop"]').addEventListener("click", goBack);
-  $("lcd").addEventListener("click", () => open(current()));
-  $("lcd").addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(); });
-
-  // ------------------------------------------------------------------ list / search
-
+  const view = $("view");
   const search = $("search");
-  search.addEventListener("input", renderList);
 
-  function entryRow(entry, isCurrent, onClick) {
-    const cli = entry.tool && cliInfo(entry.tool);
-    const sub = entry.tool
-      ? (cli ? ">_ Terminal · " : "") + host(entry.tool.url) + (entry.tool.description ? " — " + entry.tool.description : "")
-      : entry.notes.split("\n")[0];
-    return el("button", { class: "row" + (isCurrent ? " current" : ""), onclick: onClick,
-      oncontextmenu: (e) => { if (entry.tool) { e.preventDefault(); showMenu(entry.tool); } } },
-      el("strong", { text: entry.tool ? entry.tool.name : "≡ Notes, queries & commands" }),
-      el("small", { class: cli ? "cli" : "", text: sub }));
-  }
-
-  function jumpTo(entry) {
-    groups.forEach((g, gi) => {
-      const xi = g.entries.indexOf(entry);
-      if (xi >= 0 && (gi !== group || xi !== item)) { remember(); group = gi; item = xi; }
+  function home() {
+    const pipeline = el("div", { class: "pipeline" }, el("div", { class: "spine" }));
+    const items = [];
+    const favs = favorites().map((u) => toolsByUrl.get(u)).filter(Boolean);
+    if (favs.length) items.push(card("FAVORIS", el("div", { class: "rows" }, favs.map(toolRow))));
+    phases.forEach((p, i) => {
+      const c = card("PHASE " + p.id, icon(p.icon), ...heading(p.kicker, p.headline, p.body),
+        el("p", { class: "more", text: `${p.sections.length} sections · ${p.tools} outils  →` }));
+      c.classList.add("link");
+      c.tabIndex = 0;
+      c.addEventListener("click", () => { location.hash = "#/phase/" + p.id; });
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter") location.hash = "#/phase/" + p.id; });
+      items.push(c);
+      if (i === 2) items.push(el("div", { class: "quote" }, el("span", { text: "La vérification croisée des sources est le cœur de l'OSINT." })));
     });
-    render();
+    items.forEach((node, i) => pipeline.append(step(i % 2 ? "right" : "left", i + 1, node)));
+    pipeline.firstChild.style.gridRow = `1 / ${items.length + 2}`;
+    view.replaceChildren(pipeline);
   }
 
-  function renderList() {
-    const list = $("list");
-    list.replaceChildren();
+  function phasePage(id) {
+    const p = phases.find((x) => x.id === id);
+    if (!p) return home();
+    const list = el("div", { class: "sections" });
+    for (const s of p.sections) {
+      const c = sectionCard(s, "");
+      if (c) list.append(step("left", 0, c.node));
+    }
+    view.replaceChildren(
+      el("a", { class: "back", href: "#/", text: "← Pipeline" }),
+      card("PHASE " + p.id, icon(p.icon), ...heading(p.kicker, p.headline, `${p.body}\n${p.sections.length} sections · ${p.tools} outils`)),
+      list);
+  }
+
+  function results(query) {
+    const list = el("div", { class: "sections" });
+    let total = 0;
+    for (const p of phases) {
+      for (const s of p.sections) {
+        const c = sectionCard(s, query, `PHASE ${p.id} · ${s.title.toUpperCase()}`);
+        if (!c) continue;
+        total += c.count;
+        list.append(step("left", 0, c.node));
+      }
+    }
+    view.replaceChildren(el("p", { class: "count", text: total ? `${total} résultat(s)` : "Aucun outil ne correspond." }), list);
+  }
+
+  function route() {
     const q = search.value.trim().toLowerCase();
-    if (!q) {
-      groups[group].entries.forEach((entry, i) => list.append(entryRow(entry, i === item, () => {
-        if (i === item) open(entry); else { remember(); item = i; render(); }
-      })));
-      return;
-    }
-    let hits = 0;
-    for (const g of groups) {
-      const matches = g.entries.filter((e) => e.tool
-        ? [e.tool.name, e.tool.url, e.tool.description, g.title].some((x) => x && x.toLowerCase().includes(q))
-        : e.notes.toLowerCase().includes(q) || g.title.toLowerCase().includes(q));
-      if (!matches.length) continue;
-      hits += matches.length;
-      list.append(el("div", { class: "list-head" }, el("span", { class: "tab", text: g.title.toUpperCase() }), el("b", { text: String(matches.length) })));
-      for (const m of matches) list.append(entryRow(m, false, () => { jumpTo(m); open(m); }));
-    }
-    if (!hits) list.append(el("p", { class: "empty-note", text: "No tool matches “" + search.value + "”." }));
+    if (q) return results(q);
+    const m = location.hash.match(/^#\/phase\/(\d+)/);
+    if (m) phasePage(+m[1]); else home();
   }
+  window.addEventListener("hashchange", () => { search.value = ""; route(); window.scrollTo(0, 0); });
+  search.addEventListener("input", route);
 
-  // ------------------------------------------------------------------ modals
+  // ------------------------------------------------------------------ tool actions
 
   const modal = $("modal");
   function showModal(...content) {
@@ -338,84 +277,82 @@
   function closeModal() { modal.hidden = true; }
   modal.addEventListener("click", (e) => { if (e.target === modal || e.target.classList.contains("modal-close")) closeModal(); });
 
+  function openTool(tool) {
+    if (cliInfo(tool)) showMenu(tool);
+    else window.open(tool.url, "_blank", "noopener");
+  }
+
   function showMenu(tool) {
-    tool = tool || current().tool;
-    if (!tool) return showNotes(current());
     const info = cliInfo(tool);
-    const content = [el("h3", { text: tool.name }), el("p", { class: "kicker", text: tool.url })];
+    const content = [el("h3", { text: tool.name }), el("p", { class: "count", text: tool.url })];
     if (info) {
-      let target = "pc";
-      const pre = el("pre", { class: "lcd-text" });
+      const pre = el("pre", { class: "mono" });
       const tabs = el("div", { class: "tabs-row" });
       const setTarget = (t) => {
-        target = t;
         pre.textContent = script(info, t);
         tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
       };
-      tabs.append(el("button", { "data-t": "pc", text: "PC terminal", onclick: () => setTarget("pc") }),
+      tabs.append(el("button", { "data-t": "pc", text: "Terminal PC", onclick: () => setTarget("pc") }),
         el("button", { "data-t": "termux", text: "Android · Termux", onclick: () => setTarget("termux") }));
-      content.push(el("label", { text: "Install & run from a terminal" }), tabs, pre,
-        el("div", { class: "btns" }, el("button", { class: "key-btn primary", text: "Copy command", onclick: () => copy(pre.textContent) })));
+      content.push(el("label", { text: "Installer et lancer depuis un terminal" }), tabs, pre,
+        el("div", { class: "btns" }, el("button", { class: "btn", text: "Copier la commande", onclick: () => copy(pre.textContent) })));
       setTarget("pc");
     }
-    const fav = isFavorite(tool);
     const items = [
-      ["Open in a new tab", () => window.open(tool.url, "_blank", "noopener")],
-      ["Open archived copy (Wayback Machine)", () => window.open("https://web.archive.org/web/" + tool.url, "_blank", "noopener")],
-      [fav ? "Remove from favorites" : "Add to favorites", () => {
-        const e = groups[group].entries.find((x) => x.tool === tool);
-        if (e) { item = groups[group].entries.indexOf(e); toggleFavorite(); }
-        else {
-          const favs = store.get("favorites", []);
-          if (fav) favs.splice(favs.indexOf(tool.url), 1); else favs.push(tool.url);
-          store.set("favorites", favs); buildGroups(); render();
-        }
-        closeModal();
-      }],
-      ["Copy link", () => copy(tool.url)],
+      ["Ouvrir dans un nouvel onglet", () => window.open(tool.url, "_blank", "noopener")],
+      ["Copie archivée (Wayback Machine)", () => window.open("https://web.archive.org/web/" + tool.url, "_blank", "noopener")],
+      [isFavorite(tool) ? "Retirer des favoris" : "Ajouter aux favoris", () => { toggleFavorite(tool); closeModal(); }],
+      ["Copier le lien", () => copy(tool.url)],
     ];
     for (const [label, action] of items) content.push(el("button", { class: "menu-item", text: label, onclick: action }));
     showModal(...content);
   }
 
-  function showNotes(entry) {
-    showModal(el("h3", { text: entry.section }), el("pre", { class: "lcd-text", text: entry.notes }),
-      el("div", { class: "btns" }, el("button", { class: "key-btn primary", text: "Copy all", onclick: () => copy(entry.notes) })));
+  function showNotes(section) {
+    showModal(el("h3", { text: section.title }), el("pre", { class: "mono", text: section.notes }),
+      el("div", { class: "btns" }, el("button", { class: "btn", text: "Tout copier", onclick: () => copy(section.notes) })));
+  }
+
+  function showTerminalHelp() {
+    showModal(el("h3", { text: "Outils en ligne de commande" }),
+      el("p", { class: "body", text: "Les outils marqués >_ TERMINAL (Sherlock, Maigret, GHunt, theHarvester…) se lancent depuis un terminal. "
+        + "Ouvrez l'outil pour copier sa commande d'installation : Terminal PC (Linux, macOS, Windows avec WSL ou Git Bash) "
+        + "ou Android · Termux. Prérequis sur PC : git et, selon le projet, python3, go, node ou ruby." }));
   }
 
   // Dork builder — operators and templates from the cheat sheet.
   const TEMPLATES = [
-    ["Dork · Text on a site", 'intext:"{T}" site:example.com'],
-    ["Dork · Documents on a site", "site:{T} ext:doc | ext:docx | ext:odt | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv"],
-    ["Dork · Open directory (index of)", 'intitle:"index of" "{T}"'],
-    ["Dork · All words in title", "allintitle: {T}"],
-    ["Dork · All words in URL", "allinurl: {T}"],
-    ["Dork · Pages linking to", "link:{T}"],
-    ["Dork · Define term", "define:{T}"],
-    ["Facebook · Group search", 'site:facebook.com inurl:group "{T}"'],
-    ["Facebook · Group wall posts", 'site:facebook.com inurl:wall "{T}"'],
+    ["Dork · Texte sur un site", 'intext:"{T}" site:example.com'],
+    ["Dork · Documents sur un site", "site:{T} ext:doc | ext:docx | ext:odt | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv"],
+    ["Dork · Répertoire ouvert (index of)", 'intitle:"index of" "{T}"'],
+    ["Dork · Tous les mots dans le titre", "allintitle: {T}"],
+    ["Dork · Tous les mots dans l'URL", "allinurl: {T}"],
+    ["Dork · Pages qui pointent vers", "link:{T}"],
+    ["Dork · Définir un terme", "define:{T}"],
+    ["Facebook · Recherche de groupes", 'site:facebook.com inurl:group "{T}"'],
+    ["Facebook · Publications de groupe", 'site:facebook.com inurl:wall "{T}"'],
     ["Facebook · Pages", 'site:facebook.com inurl:pages "{T}"'],
-    ["Facebook · Public profiles", 'allinurl: people "{T}" site:facebook.com'],
-    ["Facebook · By ID", "id {T} site:facebook.com *"],
+    ["Facebook · Profils publics", 'allinurl: people "{T}" site:facebook.com'],
+    ["Facebook · Par ID", "id {T} site:facebook.com *"],
     ...["photos-by", "photos-liked", "photos-of", "photos-commented", "friends", "videos", "videos-by", "videos-liked",
       "videos-commented", "events-joined", "relatives"].map((p) => ["FQL · " + p + " (ID)", "https://www.facebook.com/search/{T}/" + p]),
-    ["LinkedIn · Public profiles", 'site:linkedin.com inurl:pub "{T}"'],
-    ["LinkedIn · Updated profiles", 'site:linkedin.com inurl:updates "{T}"'],
-    ["LinkedIn · Company profiles", 'site:linkedin.com inurl:companies "{T}"'],
-    ["MySpace · Profiles", 'site:myspace.com inurl:profile "{T}"'],
+    ["LinkedIn · Profils publics", 'site:linkedin.com inurl:pub "{T}"'],
+    ["LinkedIn · Profils mis à jour", 'site:linkedin.com inurl:updates "{T}"'],
+    ["LinkedIn · Pages d'entreprise", 'site:linkedin.com inurl:companies "{T}"'],
+    ["MySpace · Profils", 'site:myspace.com inurl:profile "{T}"'],
     ["MySpace · Blogs", 'site:myspace.com inurl:blogs "{T}"'],
-    ["MySpace · Videos", 'site:myspace.com "{T}" "videos"'],
-    ["Telegram · Channels & users", 'site:t.me "{T}"'],
+    ["MySpace · Vidéos", 'site:myspace.com "{T}" "videos"'],
+    ["Telegram · Canaux et utilisateurs", 'site:t.me "{T}"'],
     ["Pastebin · Mentions", 'site:pastebin.com "{T}"'],
   ];
   const ENGINES = [["Google", "https://www.google.com/search?q="], ["Bing", "https://www.bing.com/search?q="],
     ["DuckDuckGo", "https://duckduckgo.com/?q="], ["Yandex", "https://yandex.com/search/?text="]];
 
   function showDorks() {
-    const target = el("input", { placeholder: "e.g. johndoe or example.com" });
-    const tpl = el("select", {}, el("option", { value: "", text: "— Pick a template —" }), TEMPLATES.map(([l], i) => el("option", { value: String(i), text: l })));
+    const target = el("input", { placeholder: "ex. johndoe ou exemple.com" });
+    const tpl = el("select", {}, el("option", { value: "", text: "— Choisir un modèle —" }), TEMPLATES.map(([l], i) => el("option", { value: String(i), text: l })));
     const ops = ["site", "inurl", "intitle", "intext", "filetype"].map((o) => [o, el("input", { placeholder: o + ":" })]);
-    const exclude = el("input", { placeholder: "exclude words (-word)" });
+    const exclude = el("input", { placeholder: "mots à exclure (-mot)" });
     const query = el("textarea", { rows: "3" });
     query.style.fontFamily = "Montserrat, sans-serif";
     query.style.fontSize = "15px";
@@ -435,21 +372,21 @@
     };
     const go = (base) => {
       const q = query.value.trim();
-      if (!q) return toast("Generate or type a query first");
+      if (!q) return toast("Générez ou tapez d'abord une requête");
       window.open(/^https?:\/\//.test(q) ? q : base + encodeURIComponent(q), "_blank", "noopener");
     };
     const opGrid = el("div", {}, ops.map(([, i]) => i), exclude);
     opGrid.style.display = "grid";
     opGrid.style.gridTemplateColumns = "1fr 1fr";
     opGrid.style.gap = "8px";
-    showModal(el("h3", { text: "Dork Builder" }),
-      el("label", { text: "Target (name, username, domain, Facebook ID…)" }), target,
-      el("label", { text: "Template" }), tpl,
-      el("label", { text: "Or combine operators" }), opGrid,
-      el("div", { class: "btns" }, el("button", { class: "key-btn", text: "Generate query", onclick: generate })),
-      el("label", { text: "Query" }), query,
-      el("div", { class: "btns" }, ENGINES.map(([n, u]) => el("button", { class: "key-btn primary", text: n, onclick: () => go(u) })),
-        el("button", { class: "key-btn", text: "Copy", onclick: () => copy(query.value) })));
+    showModal(el("h3", { text: "Générateur de dorks" }),
+      el("label", { text: "Cible (nom, pseudo, domaine, ID Facebook…)" }), target,
+      el("label", { text: "Modèle" }), tpl,
+      el("label", { text: "Ou combiner des opérateurs" }), opGrid,
+      el("div", { class: "btns" }, el("button", { class: "btn ghost", text: "Générer la requête", onclick: generate })),
+      el("label", { text: "Requête" }), query,
+      el("div", { class: "btns" }, ENGINES.map(([n, u]) => el("button", { class: "btn", text: n, onclick: () => go(u) })),
+        el("button", { class: "btn ghost", text: "Copier", onclick: () => copy(query.value) })));
   }
 
   // EXIF viewer / remover, entirely in the browser.
@@ -466,7 +403,7 @@
 
   function readExif(buffer) {
     const v = new DataView(buffer);
-    if (v.byteLength < 4 || v.getUint16(0) !== 0xffd8) throw new Error("Only JPEG photos carry EXIF this tool can read");
+    if (v.byteLength < 4 || v.getUint16(0) !== 0xffd8) throw new Error("Seules les photos JPEG contiennent un EXIF lisible ici");
     let off = 2;
     while (off + 4 <= v.byteLength) {
       const marker = v.getUint16(off);
@@ -531,25 +468,25 @@
     input.addEventListener("change", async () => {
       const file = input.files[0];
       if (!file) return;
-      out.replaceChildren(el("p", { class: "kicker", text: file.name + " · " + file.type }));
+      out.replaceChildren(el("p", { class: "count", text: file.name + " · " + file.type }));
       let tags = {};
       try { tags = readExif(await file.arrayBuffer()); } catch (err) { out.append(el("p", { text: err.message })); }
       const where = gps(tags);
       if (where) {
         const [lat, lon] = where.map((x) => x.toFixed(6));
-        out.append(el("p", { text: `⚠ GPS location: ${lat}, ${lon}` }),
-          el("div", { class: "btns" }, el("button", { class: "key-btn primary", text: "Show on map",
+        out.append(el("p", { text: `⚠ Position GPS : ${lat}, ${lon}` }),
+          el("div", { class: "btns" }, el("button", { class: "btn", text: "Voir sur la carte",
             onclick: () => window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`, "_blank", "noopener") })));
       }
       const names = Object.keys(tags);
       out.append(names.length
         ? el("table", { class: "exif" }, names.map((k) => el("tr", {}, el("td", { text: k }),
           el("td", { text: Array.isArray(tags[k]) ? tags[k].map((x) => +x.toFixed ? +x.toFixed(4) : x).join(", ") : String(tags[k]) }))))
-        : el("p", { class: "kicker", text: "No EXIF metadata found." }));
-      out.append(el("div", { class: "btns" }, el("button", { class: "key-btn", text: "Download clean copy", onclick: () => cleanCopy(file) })));
+        : el("p", { class: "count", text: "Aucune métadonnée EXIF trouvée." }));
+      out.append(el("div", { class: "btns" }, el("button", { class: "btn ghost", text: "Télécharger une copie nettoyée", onclick: () => cleanCopy(file) })));
     });
-    showModal(el("h3", { text: "EXIF Metadata Viewer / Remover" }),
-      el("p", { class: "kicker", text: "Read camera, date and GPS tags. The clean copy is re-encoded without any metadata, like exiftool -all=. Nothing leaves your computer." }),
+    showModal(el("h3", { text: "Métadonnées EXIF" }),
+      el("p", { class: "count", text: "Lit l'appareil, la date et la position GPS. La copie nettoyée est réencodée sans aucune métadonnée, comme exiftool -all=. Rien ne quitte votre ordinateur." }),
       input, out);
   }
 
@@ -565,86 +502,86 @@
       canvas.toBlob((blob) => {
         const a = el("a", { href: URL.createObjectURL(blob), download: file.name.replace(/\.[^.]+$/, "") + "_clean.jpg" });
         a.click();
-        toast("Clean copy saved");
+        toast("Copie nettoyée enregistrée");
       }, "image/jpeg", 0.95);
     };
-    img.onerror = () => toast("This image format can't be cleaned here");
+    img.onerror = () => toast("Ce format d'image ne peut pas être nettoyé ici");
     img.src = url;
   }
 
   // ------------------------------------------------------------------ French guide
 
   const guideBox = $("guide");
-  function demoDpad() {
-    return dpad.cloneNode(true);
-  }
   const STEPS = [
     {
       title: "Bienvenue sur VTLOsint",
-      body: "Plus de 550 outils OSINT réunis dans une seule application, rangés par sections. Version PC et Android.",
+      body: "Plus de 550 outils OSINT rangés comme une enquête : six phases, de la recherche brute à la vérification.",
       art() {
-        const icon = el("img", { src: "icon.png", alt: "", width: "110", height: "110", class: "pulse" });
-        const name = el("div", { class: "lcd-name" });
-        const lcd = el("div", { class: "bezel" }, el("div", { class: "lcd" }, el("div", { class: "lcd-body" }, name)));
-        lcd.style.width = "240px";
-        lcd.style.marginTop = "18px";
-        const box = el("div", {}, icon, lcd);
-        box.style.textAlign = "center";
-        return { node: box, tick: (n) => { const w = "VTLOSINT"; name.textContent = w.slice(0, Math.min(n % (w.length + 4), w.length)) + (n % 2 ? " " : "_"); } };
+        const items = phases.map((p) => el("li", { text: `PHASE ${p.id} · ${p.kicker}` }));
+        const box = el("div", {}, el("p", { class: "kicker", text: "VTLOSINT" }), el("ul", { class: "mini" }, items));
+        box.firstChild.style.cssText = "color:var(--blue);font-size:28px;text-align:center;margin:0 0 10px";
+        return { node: box, tick: (n) => items.forEach((li, i) => { li.classList.toggle("dim", i > n % 8); li.classList.toggle("lit", i === n % 8); }) };
       },
     },
     {
-      title: "Les pads",
-      body: "Chaque section affiche ses outils par banque de 8 pads. Gris = site web · Vert = outil en ligne de commande · Jaune = notes. Un clic choisit, un second clic ouvre.",
+      title: "Six phases",
+      body: "Recherche → Identités → Réseaux sociaux → Images & Géo → Infrastructure → Vérification. Cliquez sur une phase pour ouvrir ses sections.",
       art() {
-        const kinds = ["web", "web", "cli", "notes", "web", "cli", "web", "empty"];
-        const labels = ["Shodan", "Wayback", "Sherlock", "Notes", "TinEye", "Maigret", "Pimeyes", ""];
-        const grid = el("div", { class: "pads demo-pads" }, labels.map((l, i) => el("div", { class: "pad " + kinds[i], text: l })));
-        return { node: grid, tick: (n) => [...grid.children].forEach((p, i) => p.classList.toggle("selected", i === n % 7)) };
-      },
-    },
-    {
-      title: "La croix directionnelle",
-      body: "Comme sur un Flipper Zero : ◀ ▶ changent d’outil, ▲ ▼ de section, ● ouvre l’outil. Au clavier : flèches, Entrée, F (favori), Retour arrière.",
-      art() {
-        const pad = demoDpad();
-        pad.removeAttribute("id");
-        pad.style.width = pad.style.height = "170px";
-        const cap = el("div", { class: "caption" });
-        const keys = [["right", "▶  Outil suivant"], ["left", "◀  Outil précédent"], ["down", "▼  Section suivante"],
-          ["up", "▲  Section précédente"], ["ok", "●  Ouvrir · clic droit : options"], ["", " "]];
-        const box = el("div", {}, pad, cap);
-        box.style.textAlign = "center";
-        return { node: box, tick: (n) => {
-          const [k, t] = keys[n % keys.length];
-          pad.querySelectorAll(".dpad-zone").forEach((z) => z.classList.toggle("active", z.dataset.key === k));
-          cap.textContent = t;
+        const holder = el("div");
+        return { node: holder, tick: (n) => {
+          if (n % 2) return;
+          const p = phases[(n / 2) % phases.length];
+          const c = card("PHASE " + p.id, icon(p.icon), ...heading(p.kicker, p.headline));
+          c.classList.add("slide-in");
+          holder.replaceChildren(c);
         } };
       },
     },
     {
-      title: "REC · PLAY · STOP",
-      body: "Les touches de la boîte à rythmes pilotent l’outil sélectionné. Le voyant rouge de REC s’allume quand l’outil est dans vos favoris.",
+      title: "Sections et outils",
+      body: "Chaque phase regroupe des sections. WEB s'ouvre dans un nouvel onglet, >_ TERMINAL donne la commande d'installation pour PC ou Termux.",
       art() {
-        const led = el("b", { class: "led on-red blink" });
-        const row = el("div", { class: "transport" },
-          el("div", { class: "tkey rec" }, el("span", {}, led, "REC"), el("i")),
-          el("div", { class: "tkey" }, el("span", {}, el("b", { class: "led on-green" }), "PLAY"), el("i")),
-          el("div", { class: "tkey" }, el("span", { text: "STOP" }), el("i")));
-        const chassis = el("div", { class: "chassis" }, row);
-        chassis.style.position = "static";
-        chassis.style.width = "300px";
-        const cap = el("div", { class: "caption" });
-        const caps = ["REC  →  ajouter aux favoris", "PLAY  →  ouvrir l’outil", "STOP  →  revenir à l’outil précédent", "BANK ◀ ▶  →  changer de banque"];
-        return { node: el("div", {}, chassis, cap), tick: (n) => { cap.textContent = caps[Math.floor(n / 2) % caps.length]; } };
+        const demo = [["Shodan", "shodan.io", false], ["Sherlock", "github.com", true], ["Wayback Machine", "web.archive.org", false]];
+        const rows = demo.map(([n, h, t]) => el("div", { class: "row" }, el("span", { class: "texts" }, el("strong", { text: n }), el("small", { text: h })),
+          el("span", { class: "tag" + (t ? " term" : ""), text: t ? ">_ TERMINAL" : "WEB" })));
+        return { node: card("IP ADDRESSES", rows), tick: (n) => rows.forEach((r, i) => r.classList.toggle("hl", i === n % 3)) };
+      },
+    },
+    {
+      title: "Options d'un outil",
+      body: "Le bouton ⋯ ou le clic droit ouvre les options : favoris, copie archivée sur la Wayback Machine, copie du lien. Vos favoris s'affichent en tête du pipeline.",
+      art() {
+        const items = ["★  Ajouter aux favoris", "Copie archivée (Wayback Machine)", "Ouvrir dans un nouvel onglet", "Copier le lien"]
+          .map((t) => el("div", { class: "menu-item", text: t }));
+        const box = el("div", { class: "modal-box" }, el("h3", { text: "Sherlock" }), items);
+        box.style.position = "static";
+        return { node: box, tick: (n) => items.forEach((it, i) => it.classList.toggle("hl", i === n % items.length)) };
+      },
+    },
+    {
+      title: "Rechercher",
+      body: "La barre de recherche filtre tous les outils par nom, site ou description, toutes phases confondues. Raccourci clavier : /",
+      art() {
+        const field = el("div");
+        field.style.cssText = "background:var(--surface);border:1.5px solid var(--blue);border-radius:4px;padding:12px 14px";
+        const result = card("PHASE 3 · SOCIAL NETWORKS", el("div", { class: "row" }, el("span", { class: "texts" }, el("strong", { text: "Sherlock" }),
+          el("small", { text: "github.com" })), el("span", { class: "tag term", text: ">_ TERMINAL" })));
+        const word = "sherlock";
+        return { node: el("div", {}, field, result), tick: (n) => {
+          const k = Math.min(n % (word.length + 5), word.length);
+          field.textContent = k ? word.slice(0, k) + "▌" : "Rechercher…";
+          field.style.color = k ? "var(--text)" : "var(--dim)";
+          result.style.opacity = k === word.length ? 1 : 0;
+        } };
       },
     },
     {
       title: "Outils intégrés",
-      body: "Recherche dans tous les outils, générateur de Google Dorks, lecteur et nettoyeur EXIF, et commandes prêtes à copier pour installer Sherlock, Maigret, GHunt…",
+      body: "Générateur de Google Dorks, lecteur et nettoyeur EXIF (rien ne quitte votre ordinateur), aide pour le terminal, et ce guide.",
       art() {
-        const nav = document.querySelector(".icons").cloneNode(true);
+        const nav = document.querySelector(".quick").cloneNode(true);
         nav.querySelectorAll("button").forEach((b) => b.setAttribute("tabindex", "-1"));
+        nav.style.justifyContent = "center";
         return { node: nav, tick: (n) => {
           const b = nav.children[n % nav.children.length];
           b.classList.remove("bounce");
@@ -654,14 +591,11 @@
       },
     },
     {
-      title: "Prêt ?",
-      body: "Utilisez ces outils légalement, uniquement sur des cibles que vous êtes autorisé à étudier. Ce guide reste disponible avec le bouton Guide.",
+      title: "OSINT éthique",
+      body: "Utilisez ces outils légalement, uniquement sur des cibles que vous êtes autorisé à étudier. Ce guide reste accessible avec le bouton Guide.",
       art() {
-        const h = el("h2", { text: "Chercher, vérifier, documenter." });
-        const card = el("div", { class: "card" }, el("span", { class: "tab", text: "OSINT ÉTHIQUE" }), el("p", { class: "kicker", text: "Mission" }), h);
-        card.style.width = "320px";
-        h.style.fontSize = "20px";
-        return { node: card, tick: (n) => { h.style.opacity = n % 2 ? "0.55" : "1"; h.style.transition = "opacity .6s"; } };
+        const q = el("div", { class: "quote breathe" }, el("span", { text: "La vérification croisée des sources est le cœur de l'OSINT." }));
+        return { node: q, tick: () => {} };
       },
     },
   ];
@@ -670,10 +604,10 @@
   function showGuide(index, direction) {
     guideIndex = Math.max(0, Math.min(STEPS.length - 1, index));
     clearInterval(guideTimer);
-    const step = STEPS[guideIndex];
-    const art = step.art();
+    const s = STEPS[guideIndex];
+    const art = s.art();
     const stage = el("div", { class: "guide-stage" }, art.node);
-    const textBox = el("div", {}, el("h3", { text: step.title }), el("p", { text: step.body }));
+    const textBox = el("div", {}, el("h3", { text: s.title }), el("p", { class: "text", text: s.body }));
     for (const n of [stage, textBox]) { n.classList.add("slide-in"); n.style.setProperty("--from", (direction < 0 ? -40 : 40) + "px"); }
     const last = guideIndex === STEPS.length - 1;
     guideBox.replaceChildren(el("div", { class: "guide-box", role: "dialog", "aria-modal": "true", "aria-label": "Guide" },
@@ -682,15 +616,15 @@
       stage, textBox,
       el("div", { class: "guide-dots" }, STEPS.map((_, i) => el("i", { class: i === guideIndex ? "on" : "" }))),
       el("div", { class: "btns" },
-        el("button", { class: "key-btn", text: "Précédent", onclick: () => showGuide(guideIndex - 1, -1),
+        el("button", { class: "btn ghost", text: "Précédent", onclick: () => showGuide(guideIndex - 1, -1),
           style: guideIndex === 0 ? "visibility:hidden" : "" }),
-        el("button", { class: "key-btn primary", text: last ? "C'est parti !" : "Suivant",
+        el("button", { class: "btn next", text: last ? "C'est parti !" : "Suivant",
           onclick: () => last ? closeGuide() : showGuide(guideIndex + 1, 1) }))));
     guideBox.hidden = false;
     let n = 0;
     art.tick(n++);
-    guideTimer = setInterval(() => art.tick(n++), 650);
-    guideBox.querySelector(".key-btn.primary").focus();
+    guideTimer = setInterval(() => art.tick(n++), 700);
+    guideBox.querySelector(".btn.next").focus();
   }
   function closeGuide() {
     clearInterval(guideTimer);
@@ -700,9 +634,9 @@
 
   // ------------------------------------------------------------------ wiring
 
-  document.querySelector('[data-action="search"]').addEventListener("click", () => { search.focus(); search.select(); });
   document.querySelector('[data-action="dorks"]').addEventListener("click", showDorks);
   document.querySelector('[data-action="exif"]').addEventListener("click", showExif);
+  document.querySelector('[data-action="terminal"]').addEventListener("click", showTerminalHelp);
   document.querySelector('[data-action="guide"]').addEventListener("click", () => showGuide(0, 1));
 
   document.addEventListener("keydown", (e) => {
@@ -714,17 +648,11 @@
     }
     if (!modal.hidden) { if (e.key === "Escape") closeModal(); return; }
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-    if (typing) { if (e.key === "Escape") document.activeElement.blur(); return; }
-    const keys = {
-      ArrowLeft: () => { flashKey("left"); move(-1); }, ArrowRight: () => { flashKey("right"); move(1); },
-      ArrowUp: () => { flashKey("up"); jumpGroup(-1); }, ArrowDown: () => { flashKey("down"); jumpGroup(1); },
-      Enter: () => { flashKey("ok"); open(current()); }, f: toggleFavorite, F: toggleFavorite, Backspace: goBack,
-      "/": () => { search.focus(); }, "[": () => jumpBank(-1), "]": () => jumpBank(1),
-    };
-    if (keys[e.key]) { e.preventDefault(); keys[e.key](); }
+    if (typing) { if (e.key === "Escape") { search.value = ""; route(); document.activeElement.blur(); } return; }
+    if (e.key === "/") { e.preventDefault(); search.focus(); }
   });
 
-  render();
+  route();
   if (!store.get("guideSeen", false)) showGuide(0, 1);
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

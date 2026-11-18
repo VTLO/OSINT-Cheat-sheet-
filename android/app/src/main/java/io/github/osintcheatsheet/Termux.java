@@ -108,13 +108,13 @@ final class Termux {
     static void run(Activity activity, String script) {
         if (!isInstalled(activity)) {
             new AlertDialog.Builder(activity)
-                    .setTitle("Termux required")
-                    .setMessage("Command-line tools run inside Termux. Install Termux from F-Droid "
-                            + "(the Play Store build is outdated), open it once, then come back.\n\n"
-                            + "The command has been copied to the clipboard.")
-                    .setPositiveButton("Get Termux", (d, w) -> Ui.openExternal(activity,
+                    .setTitle("Termux requis")
+                    .setMessage("Les outils en ligne de commande tournent dans Termux. Installez Termux depuis F-Droid "
+                            + "(la version Play Store est obsolète), ouvrez-le une fois, puis revenez.\n\n"
+                            + "La commande a été copiée dans le presse-papiers.")
+                    .setPositiveButton("Obtenir Termux", (d, w) -> Ui.openExternal(activity,
                             "https://f-droid.org/packages/com.termux/"))
-                    .setNegativeButton("Close", null)
+                    .setNegativeButton("Fermer", null)
                     .show();
             Ui.copy(activity, script);
             return;
@@ -136,11 +136,11 @@ final class Termux {
             activity.startService(intent);
             Intent open = activity.getPackageManager().getLaunchIntentForPackage(PACKAGE);
             if (open != null) activity.startActivity(open);
-            Ui.toast(activity, "Sent to Termux");
+            Ui.toast(activity, "Envoyé à Termux");
         } catch (RuntimeException e) {
             Ui.copy(activity, script);
-            showSetupHelp(activity, "Termux refused the command (" + e.getClass().getSimpleName()
-                    + "). The command was copied to the clipboard; paste it into Termux, or finish the setup below.");
+            showSetupHelp(activity, "Termux a refusé la commande (" + e.getClass().getSimpleName()
+                    + "). Elle a été copiée : collez-la dans Termux, ou terminez la configuration ci-dessous.");
         }
     }
 
@@ -153,21 +153,21 @@ final class Termux {
             run(activity, script);
         } else {
             Ui.copy(activity, script);
-            Ui.toast(activity, "Permission denied - command copied, paste it into Termux");
+            Ui.toast(activity, "Permission refusée — commande copiée, collez-la dans Termux");
         }
     }
 
     static void showSetupHelp(Activity activity, String intro) {
         new AlertDialog.Builder(activity)
-                .setTitle("Termux setup")
+                .setTitle("Configuration de Termux")
                 .setMessage((intro == null ? "" : intro + "\n\n")
-                        + "One-time setup so this app can start tools in Termux:\n\n"
-                        + "1. Install Termux from F-Droid and open it once.\n"
-                        + "2. Run this in Termux:\n\n" + SETUP_COMMAND + "\n\n"
-                        + "3. Android 10+: allow Termux \"Display over other apps\".\n"
-                        + "4. Grant this app the \"Run commands in Termux\" permission when asked.")
-                .setPositiveButton("Copy setup command", (d, w) -> Ui.copy(activity, SETUP_COMMAND))
-                .setNegativeButton("Close", null)
+                        + "Configuration unique pour que l'app puisse lancer des outils dans Termux :\n\n"
+                        + "1. Installez Termux depuis F-Droid et ouvrez-le une fois.\n"
+                        + "2. Lancez ceci dans Termux :\n\n" + SETUP_COMMAND + "\n\n"
+                        + "3. Android 10+ : autorisez Termux à « s'afficher par-dessus d'autres apps ».\n"
+                        + "4. Accordez à VTLOsint la permission « Exécuter des commandes dans Termux ».")
+                .setPositiveButton("Copier la commande", (d, w) -> Ui.copy(activity, SETUP_COMMAND))
+                .setNegativeButton("Fermer", null)
                 .show();
     }
 

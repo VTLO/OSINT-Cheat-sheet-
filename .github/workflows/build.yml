@@ -3,16 +3,14 @@ name: VTLOsint builds
 on:
   push:
     paths:
-      - README.md
-      - awesome-article.md
+      - data/**
       - android/**
       - web/build.py
       - web/src/**
       - .github/workflows/android.yml
   pull_request:
     paths:
-      - README.md
-      - awesome-article.md
+      - data/**
       - android/**
       - web/build.py
       - web/src/**

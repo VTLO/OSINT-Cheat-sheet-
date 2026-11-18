@@ -1,7 +1,5 @@
 package io.github.osintcheatsheet;
 
-import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
@@ -18,11 +16,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Short animated guide in French, shown at first launch and from the ⋮ menu. */
+import java.util.List;
+import java.util.Locale;
+
+/** Short animated guide in French, shown at first launch and from the Guide button. */
 public class GuideActivity extends Activity {
 
     static final String KEY_SEEN = "guide_seen";
-    private static final long TICK_MS = 650;
+    private static final long TICK_MS = 700;
 
     /** One step of the guide: its text and an animated illustration. */
     private interface Step {
@@ -37,7 +38,7 @@ public class GuideActivity extends Activity {
     }
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Step[] steps = {new Welcome(), new Pads(), new Cross(), new Transport(), new Tools(), new Ready()};
+    private Step[] steps;
     private int index;
     private int ticks;
 
@@ -61,9 +62,12 @@ public class GuideActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        List<Phases.Phase> phases = Phases.load(this);
+        steps = new Step[]{new Welcome(phases), new PhaseTour(phases), new Sections(), new Options(),
+                new Search(), new Builtins(), new Ethics()};
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackground(new Panel.CircuitDrawable(this));
         int side = Ui.dp(this, 22);
         root.setPadding(side, Ui.dp(this, 18), side, Ui.dp(this, 18));
 
@@ -151,7 +155,7 @@ public class GuideActivity extends Activity {
         handler.removeCallbacks(loop);
 
         Step step = steps[index];
-        stepTab.setText(String.format(java.util.Locale.ROOT, "GUIDE %d / %d", index + 1, steps.length));
+        stepTab.setText(String.format(Locale.ROOT, "GUIDE %d / %d", index + 1, steps.length));
         stage.removeAllViews();
         View art = step.build(this);
         FrameLayout.LayoutParams artLp = art.getLayoutParams() instanceof FrameLayout.LayoutParams
@@ -168,16 +172,17 @@ public class GuideActivity extends Activity {
             v.animate().alpha(1f).translationX(0f).setDuration(320).start();
         }
         for (int i = 0; i < dots.getChildCount(); i++) {
-            dots.getChildAt(i).setBackground(Flipper.rounded(i == index ? Panel.BLUE : Panel.SURFACE,
+            dots.getChildAt(i).setBackground(Panel.rounded(i == index ? Panel.BLUE : Panel.SURFACE,
                     i == index ? 0 : 1, Panel.BLUE_DIM, 4, this));
         }
         back.setVisibility(index == 0 ? View.INVISIBLE : View.VISIBLE);
         next.setText(index == steps.length - 1 ? "C'est parti !" : "Suivant");
-        handler.postDelayed(loop, 400);
+        step.tick(ticks++);
+        handler.postDelayed(loop, TICK_MS);
     }
 
     private void done() {
-        getSharedPreferences("osint", MODE_PRIVATE).edit().putBoolean(KEY_SEEN, true).apply();
+        Tools.prefs(this).edit().putBoolean(KEY_SEEN, true).apply();
         finish();
     }
 
@@ -202,194 +207,221 @@ public class GuideActivity extends Activity {
         return col;
     }
 
-    private static TextView caption(Context c) {
-        TextView t = Panel.text(c, 15, Panel.BLUE, true);
-        t.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-        t.setLayoutParams(lp);
-        return t;
-    }
-
+    /** The six phases as a small spine whose nodes light up in turn. */
     private static final class Welcome implements Step {
-        private TextView lcd;
-        private static final String WORD = "VTLOSINT";
+        private final List<Phases.Phase> phases;
+        private final LinearLayout[] rows = new LinearLayout[6];
+        private final Panel.SpineView[] nodes = new Panel.SpineView[6];
+
+        Welcome(List<Phases.Phase> phases) {
+            this.phases = phases;
+        }
 
         public String title() { return "Bienvenue sur VTLOsint"; }
 
         public String body() {
-            return "Plus de 550 outils OSINT réunis dans une seule application, rangés par sections.";
+            return "Plus de 550 outils OSINT rangés comme une enquête : six phases, "
+                    + "de la recherche brute à la vérification.";
         }
 
         public View build(Context c) {
             LinearLayout col = column(c);
-            ImageView icon = new ImageView(c);
-            icon.setImageResource(R.mipmap.ic_launcher);
-            col.addView(icon, new LinearLayout.LayoutParams(Ui.dp(c, 120), Ui.dp(c, 120)));
-            ObjectAnimator pulse = ObjectAnimator.ofFloat(icon, View.SCALE_X, 1f, 1.08f);
-            pulse.setRepeatMode(ValueAnimator.REVERSE);
-            pulse.setRepeatCount(ValueAnimator.INFINITE);
-            pulse.setDuration(900);
-            pulse.addUpdateListener(a -> icon.setScaleY((float) a.getAnimatedValue()));
-            pulse.start();
-
-            LinearLayout screen = new LinearLayout(c);
-            lcd = Flipper.lcdText(c, 34, true);
-            lcd.setPadding(Ui.dp(c, 14), Ui.dp(c, 4), Ui.dp(c, 14), Ui.dp(c, 4));
-            screen.addView(lcd);
-            View frame = Flipper.lcd(c, screen);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, 240), -2);
-            lp.topMargin = Ui.dp(c, 24);
-            col.addView(frame, lp);
-            return col;
-        }
-
-        public void tick(int n) {
-            int shown = Math.min(n % (WORD.length() + 4), WORD.length());
-            lcd.setText(WORD.substring(0, shown) + (n % 2 == 0 ? "_" : " "));
-        }
-    }
-
-    private static final class Pads implements Step {
-        private static final int[] STATES = {Panel.PAD_STATE_WEB, Panel.PAD_STATE_WEB, Panel.PAD_STATE_CLI,
-                Panel.PAD_STATE_NOTES, Panel.PAD_STATE_WEB, Panel.PAD_STATE_CLI, Panel.PAD_STATE_WEB,
-                Panel.PAD_STATE_EMPTY};
-        private static final String[] LABELS = {"Shodan", "Wayback", "Sherlock", "Notes", "TinEye", "Maigret",
-                "Pimeyes", ""};
-        private final TextView[] pads = new TextView[8];
-
-        public String title() { return "Les pads"; }
-
-        public String body() {
-            return "Chaque section affiche ses outils par banque de 8 pads.\n"
-                    + "Gris = site web · Vert = outil Termux · Jaune = notes.\n"
-                    + "Touchez un pad pour le choisir, retouchez-le pour l’ouvrir.";
-        }
-
-        public View build(Context c) {
-            LinearLayout grid = new LinearLayout(c);
-            grid.setOrientation(LinearLayout.VERTICAL);
-            grid.setBackground(Panel.chassis(c));
-            int gap = Ui.dp(c, 6);
-            grid.setPadding(gap * 2, gap * 2, gap * 2, gap * 2);
-            for (int r = 0; r < 2; r++) {
+            TextView name = Panel.text(c, 30, Panel.BLUE, true);
+            name.setText("VTLOSINT");
+            col.addView(name);
+            LinearLayout list = new LinearLayout(c);
+            list.setOrientation(LinearLayout.VERTICAL);
+            for (int i = 0; i < Math.min(6, phases.size()); i++) {
                 LinearLayout row = new LinearLayout(c);
-                for (int col = 0; col < 4; col++) {
-                    TextView pad = Panel.pad(c);
-                    pads[r * 4 + col] = pad;
-                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, 66), Ui.dp(c, 56));
-                    if (col > 0) lp.leftMargin = gap;
-                    row.addView(pad, lp);
-                }
-                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-2, -2);
-                if (r > 0) rowLp.topMargin = gap;
-                grid.addView(row, rowLp);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                nodes[i] = new Panel.SpineView(c, i == 0, i == phases.size() - 1);
+                nodes[i].setNodeY(17);
+                row.addView(nodes[i], new LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 34)));
+                TextView label = Panel.text(c, 14, Panel.TEXT, true);
+                label.setText("PHASE " + phases.get(i).id + " · " + phases.get(i).kicker);
+                row.addView(label);
+                list.addView(row);
+                rows[i] = row;
             }
-            tick(0);
-            return grid;
-        }
-
-        public void tick(int n) {
-            int selected = n % 7;
-            for (int i = 0; i < pads.length; i++) {
-                Panel.stylePad(pads[i], STATES[i], i == selected, LABELS[i]);
-            }
-            pads[selected].setScaleX(0.9f);
-            pads[selected].setScaleY(0.9f);
-            pads[selected].animate().scaleX(1f).scaleY(1f).setDuration(220).start();
-        }
-    }
-
-    private static final class Cross implements Step {
-        private static final int[] KEYS = {Flipper.DPad.RIGHT, Flipper.DPad.LEFT, Flipper.DPad.DOWN,
-                Flipper.DPad.UP, Flipper.DPad.OK, Flipper.DPad.NONE};
-        private static final String[] CAPTIONS = {"▶  Outil suivant", "◀  Outil précédent", "▼  Section suivante",
-                "▲  Section précédente", "●  Ouvrir · appui long : options", " "};
-        private Flipper.DPad pad;
-        private TextView caption;
-
-        public String title() { return "La croix directionnelle"; }
-
-        public String body() {
-            return "Naviguez comme sur un Flipper Zero : les flèches parcourent les outils et les sections, "
-                    + "le bouton central ouvre l’outil affiché sur l’écran orange.";
-        }
-
-        public View build(Context c) {
-            LinearLayout col = column(c);
-            pad = new Flipper.DPad(c);
-            col.addView(pad, new LinearLayout.LayoutParams(Ui.dp(c, 190), Ui.dp(c, 190)));
-            caption = caption(c);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-            lp.topMargin = Ui.dp(c, 18);
-            col.addView(caption, lp);
+            lp.topMargin = Ui.dp(c, 12);
+            col.addView(list, lp);
             return col;
         }
 
         public void tick(int n) {
-            int i = n % KEYS.length;
-            pad.highlight(KEYS[i]);
-            caption.setText(CAPTIONS[i]);
+            int lit = n % 8;
+            for (int i = 0; i < 6 && rows[i] != null; i++) {
+                rows[i].setAlpha(i <= lit ? 1f : 0.3f);
+                nodes[i].setPulse(i == lit ? 1.6f : 1f);
+            }
         }
     }
 
-    private static final class Transport implements Step {
-        private Panel.TransportKey rec;
-        private TextView caption;
-        private static final String[] CAPTIONS = {"REC  →  ajouter aux favoris", "PLAY  →  ouvrir l’outil",
-                "STOP  →  revenir à l’outil précédent", "BANK ◀ ▶  →  changer de banque"};
+    /** A phase card cycling through the six phases. */
+    private static final class PhaseTour implements Step {
+        private final List<Phases.Phase> phases;
+        private FrameLayout holder;
 
-        public String title() { return "REC · PLAY · STOP"; }
+        PhaseTour(List<Phases.Phase> phases) {
+            this.phases = phases;
+        }
+
+        public String title() { return "Six phases"; }
 
         public String body() {
-            return "Les touches de la boîte à rythmes pilotent l’outil sélectionné. "
-                    + "Le voyant rouge de REC s’allume quand l’outil est dans vos favoris.";
+            return "Recherche → Identités → Réseaux sociaux → Images & Géo → Infrastructure → Vérification.\n"
+                    + "Touchez une phase pour ouvrir ses sections.";
+        }
+
+        public View build(Context c) {
+            holder = new FrameLayout(c);
+            holder.setLayoutParams(new FrameLayout.LayoutParams(Ui.dp(c, 300), -2));
+            return holder;
+        }
+
+        public void tick(int n) {
+            if (n % 2 != 0) return;
+            Context c = holder.getContext();
+            Phases.Phase p = phases.get((n / 2) % phases.size());
+            Panel.Card card = new Panel.Card(c, "PHASE " + p.id);
+            ImageView icon = new ImageView(c);
+            icon.setImageResource(p.iconRes());
+            card.content.addView(icon, new LinearLayout.LayoutParams(Ui.dp(c, 56), Ui.dp(c, 56)));
+            card.heading(p.kicker, p.headline, null);
+            holder.removeAllViews();
+            holder.addView(card);
+            card.setAlpha(0f);
+            card.setTranslationY(Ui.dp(c, 12));
+            card.animate().alpha(1f).translationY(0).setDuration(300).start();
+        }
+    }
+
+    /** A section card whose rows light up: web tools and terminal tools. */
+    private static final class Sections implements Step {
+        private final View[] rows = new View[3];
+
+        public String title() { return "Sections et outils"; }
+
+        public String body() {
+            return "Chaque phase regroupe des sections. WEB s'ouvre dans le navigateur intégré, "
+                    + ">_ TERMINAL s'installe et se lance via Termux.";
+        }
+
+        public View build(Context c) {
+            Panel.Card card = new Panel.Card(c, "IP ADDRESSES");
+            String[][] tools = {{"Shodan", "shodan.io", "0"}, {"Sherlock", "github.com", "1"}, {"Wayback Machine", "web.archive.org", "0"}};
+            for (int i = 0; i < 3; i++) {
+                if (i > 0) card.content.addView(Panel.divider(c));
+                rows[i] = Panel.toolRow(c, tools[i][0], tools[i][1], "1".equals(tools[i][2]));
+                card.content.addView(rows[i]);
+            }
+            card.setLayoutParams(new FrameLayout.LayoutParams(Ui.dp(c, 300), -2));
+            return card;
+        }
+
+        public void tick(int n) {
+            for (int i = 0; i < 3; i++) {
+                rows[i].setBackgroundColor(i == n % 3 ? 0x332F9BEF : 0);
+            }
+        }
+    }
+
+    /** The long-press menu, with its entries highlighted in turn. */
+    private static final class Options implements Step {
+        private final TextView[] items = new TextView[4];
+
+        public String title() { return "Appui long : options"; }
+
+        public String body() {
+            return "Favoris, copie archivée sur la Wayback Machine, navigateur externe, partage… "
+                    + "Vos favoris apparaissent en tête du pipeline.";
+        }
+
+        public View build(Context c) {
+            LinearLayout box = new LinearLayout(c);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setBackground(Panel.rounded(Panel.BG, 1.5f, Panel.BLUE, 4, c));
+            int p = Ui.dp(c, 16);
+            box.setPadding(p, p, p, p);
+            TextView head = Panel.text(c, 17, Panel.TEXT, true);
+            head.setText("Sherlock");
+            box.addView(head);
+            String[] labels = {"★  Ajouter aux favoris", "Copie archivée (Wayback Machine)",
+                    "Ouvrir dans le navigateur externe", "Partager"};
+            for (int i = 0; i < labels.length; i++) {
+                items[i] = Panel.text(c, 14, Panel.TEXT, false);
+                items[i].setText(labels[i]);
+                items[i].setPadding(Ui.dp(c, 6), Ui.dp(c, 9), Ui.dp(c, 6), Ui.dp(c, 9));
+                box.addView(items[i]);
+            }
+            box.setLayoutParams(new FrameLayout.LayoutParams(Ui.dp(c, 290), -2));
+            return box;
+        }
+
+        public void tick(int n) {
+            for (int i = 0; i < items.length; i++) {
+                items[i].setBackgroundColor(i == n % items.length ? 0x332F9BEF : 0);
+                items[i].setTextColor(i == n % items.length ? Panel.BLUE : Panel.TEXT);
+            }
+        }
+    }
+
+    /** The search box typing a query, then a matching result. */
+    private static final class Search implements Step {
+        private static final String WORD = "sherlock";
+        private TextView field;
+        private View result;
+
+        public String title() { return "Rechercher"; }
+
+        public String body() {
+            return "La barre de recherche filtre tous les outils par nom, site ou description, "
+                    + "toutes phases confondues.";
         }
 
         public View build(Context c) {
             LinearLayout col = column(c);
-            LinearLayout box = new LinearLayout(c);
-            box.setBackground(Panel.chassis(c));
-            int p = Ui.dp(c, 14);
-            box.setPadding(p, p, p, p);
-            rec = new Panel.TransportKey(c, "REC", Panel.LED_RED, Panel.REC_RED, v -> { });
-            box.addView(rec, new LinearLayout.LayoutParams(Ui.dp(c, 76), -2));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, 76), -2);
-            lp.leftMargin = Ui.dp(c, 8);
-            box.addView(new Panel.TransportKey(c, "PLAY", Panel.LED_GREEN, Panel.KEY, v -> { }), lp);
-            LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(Ui.dp(c, 76), -2);
-            lp2.leftMargin = Ui.dp(c, 8);
-            box.addView(new Panel.TransportKey(c, "STOP", 0, Panel.KEY, v -> { }), lp2);
-            col.addView(box);
-            caption = caption(c);
-            LinearLayout.LayoutParams capLp = new LinearLayout.LayoutParams(-2, -2);
-            capLp.topMargin = Ui.dp(c, 22);
-            col.addView(caption, capLp);
+            field = Panel.text(c, 16, Panel.TEXT, false);
+            field.setBackground(Panel.rounded(Panel.SURFACE, 1.5f, Panel.BLUE, 4, c));
+            int p = Ui.dp(c, 12);
+            field.setPadding(p, p, p, p);
+            col.addView(field, new LinearLayout.LayoutParams(Ui.dp(c, 290), -2));
+            Panel.Card card = new Panel.Card(c, "PHASE 3 · SOCIAL NETWORKS");
+            card.content.addView(Panel.toolRow(c, "Sherlock", "github.com", true));
+            result = card;
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, 290), -2);
+            lp.topMargin = Ui.dp(c, 14);
+            col.addView(result, lp);
             return col;
         }
 
         public void tick(int n) {
-            rec.setLed(n % 2 == 0);
-            caption.setText(CAPTIONS[(n / 2) % CAPTIONS.length]);
+            int shown = Math.min(n % (WORD.length() + 5), WORD.length());
+            field.setText(shown == 0 ? "Rechercher…" : WORD.substring(0, shown) + "▌");
+            field.setTextColor(shown == 0 ? Panel.TEXT_DIM : Panel.TEXT);
+            result.setAlpha(shown == WORD.length() ? 1f : 0f);
         }
     }
 
-    private static final class Tools implements Step {
+    /** The quick-access buttons bouncing one after the other. */
+    private static final class Builtins implements Step {
         private final View[] buttons = new View[4];
 
         public String title() { return "Outils intégrés"; }
 
         public String body() {
-            return "Recherche dans tous les outils, générateur de Google Dorks, lecteur et nettoyeur EXIF, "
-                    + "et Termux pour installer et lancer Sherlock, Maigret, GHunt… sur votre téléphone.";
+            return "Générateur de Google Dorks, lecteur et nettoyeur EXIF, configuration de Termux "
+                    + "pour lancer Sherlock, Maigret, GHunt… et ce guide.";
         }
 
         public View build(Context c) {
             LinearLayout row = new LinearLayout(c);
-            int[] icons = {R.drawable.ic_search, R.drawable.ic_globe, R.drawable.ic_camera, R.drawable.ic_terminal};
-            String[] labels = {"Search", "Dorks", "EXIF", "Termux"};
+            int[] icons = {R.drawable.ic_globe, R.drawable.ic_camera, R.drawable.ic_terminal, R.drawable.ic_guide};
+            String[] labels = {"Dorks", "EXIF", "Termux", "Guide"};
             for (int i = 0; i < 4; i++) {
-                buttons[i] = Flipper.iconButton(c, icons[i], labels[i], v -> { });
-                row.addView(buttons[i], new LinearLayout.LayoutParams(Ui.dp(c, 78), -2));
+                buttons[i] = Panel.quickButton(c, icons[i], labels[i], v -> { });
+                row.addView(buttons[i], new LinearLayout.LayoutParams(Ui.dp(c, 74), -2));
             }
             return row;
         }
@@ -404,26 +436,25 @@ public class GuideActivity extends Activity {
         }
     }
 
-    private static final class Ready implements Step {
-        private Panel.SectionCard card;
+    /** The highlight quote from the home pipeline. */
+    private static final class Ethics implements Step {
+        private TextView quote;
 
-        public String title() { return "Prêt ?"; }
+        public String title() { return "OSINT éthique"; }
 
         public String body() {
             return "Utilisez ces outils légalement, uniquement sur des cibles que vous êtes autorisé à étudier. "
-                    + "Ce guide reste disponible dans le menu (les trois points en haut à droite).";
+                    + "Ce guide reste accessible avec le bouton Guide.";
         }
 
         public View build(Context c) {
-            card = new Panel.SectionCard(c);
-            card.set("OSINT ÉTHIQUE", "Mission", "Chercher, vérifier, documenter.");
-            card.setLayoutParams(new FrameLayout.LayoutParams(Ui.dp(c, 280), -2));
-            return card;
+            quote = Panel.quote(c, "La vérification croisée des sources est le cœur de l'OSINT.");
+            quote.setLayoutParams(new FrameLayout.LayoutParams(Ui.dp(c, 290), -2));
+            return quote;
         }
 
         public void tick(int n) {
-            card.headline.setAlpha(n % 2 == 0 ? 1f : 0.55f);
-            card.headline.animate().alpha(n % 2 == 0 ? 0.55f : 1f).setDuration(TICK_MS).start();
+            quote.animate().scaleX(n % 2 == 0 ? 1.03f : 1f).scaleY(n % 2 == 0 ? 1.03f : 1f).setDuration(TICK_MS).start();
         }
     }
 }

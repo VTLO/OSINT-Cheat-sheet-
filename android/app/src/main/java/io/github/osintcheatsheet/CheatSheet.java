@@ -18,8 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Parses the repository's Markdown cheat sheets (bundled as assets) into
- * sections of tools, so the app always lists exactly what README.md lists.
+ * Parses the Markdown tool list (data/tools.md and data/articles.md, bundled as
+ * assets) into sections of tools.
  */
 final class CheatSheet {
 
@@ -74,8 +74,8 @@ final class CheatSheet {
     static synchronized List<Section> load(Context context) {
         if (cached == null) {
             List<Section> all = new ArrayList<>();
-            all.addAll(parse(readAsset(context, "README.md"), ""));
-            all.addAll(parse(readAsset(context, "awesome-article.md"), "Articles · "));
+            all.addAll(parse(readAsset(context, "tools.md"), ""));
+            all.addAll(parse(readAsset(context, "articles.md"), "Articles · "));
             cached = all;
         }
         return cached;
