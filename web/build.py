@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Builds the VTLOsint PC web app into web/dist and downloads/VTLOsint-web.zip.
 
-The tool list is generated from README.md and awesome-article.md with the same
-rules as the Android app's CheatSheet parser, so both list exactly the same tools.
+The tool list is generated from data/tools.md and data/articles.md with the same
+rules as the Android app's CheatSheet parser, and grouped into investigation phases
+with data/phases.json, so both apps list the same tools in the same phases.
 
     python3 web/build.py
 """
@@ -20,6 +21,7 @@ FONTS = REPO / "android" / "app" / "src" / "main" / "res" / "font"
 ICON = REPO / "android" / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
 LICENSES = REPO / "android" / "app" / "src" / "main" / "assets" / "licenses"
 ZIP = REPO / "downloads" / "VTLOsint-web.zip"
+PHASES = REPO / "data" / "phases.json"
 
 HEADING = re.compile(r"^#\s+(.+?)\s*$")
 LINK_ITEM = re.compile(r"^\s*[-*]\s*\[([^\]]+)]\(([^)\s]+)\)(.*)$")
@@ -71,8 +73,12 @@ def parse(markdown, prefix=""):
 
 
 def main():
-    sections = parse((REPO / "README.md").read_text(encoding="utf-8"))
-    sections += parse((REPO / "awesome-article.md").read_text(encoding="utf-8"), "Articles · ")
+    sections = parse((REPO / "data" / "tools.md").read_text(encoding="utf-8"))
+    sections += parse((REPO / "data" / "articles.md").read_text(encoding="utf-8"), "Articles · ")
+    phases = json.loads(PHASES.read_text(encoding="utf-8"))
+    for s in sections:
+        title = s["title"].lower()
+        s["phase"] = next((p for keyword, p in phases["rules"] if keyword in title), phases["default"])
 
     if DIST.exists():
         shutil.rmtree(DIST)
@@ -83,7 +89,7 @@ def main():
     for lic in LICENSES.glob("*.txt"):
         shutil.copy(lic, DIST / "fonts" / lic.name)
     shutil.copy(ICON, DIST / "icon.png")
-    data = json.dumps({"sections": sections}, ensure_ascii=False, separators=(",", ":"))
+    data = json.dumps({"phases": phases["phases"], "sections": sections}, ensure_ascii=False, separators=(",", ":"))
     # A script (not JSON fetched at runtime) so index.html also works opened straight from disk.
     (DIST / "data.js").write_text("window.VTLO_DATA=" + data + ";\n", encoding="utf-8")
 

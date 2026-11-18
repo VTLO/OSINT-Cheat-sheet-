@@ -62,19 +62,19 @@ public class ExifActivity extends Activity {
         root.setPadding(pad, pad, pad, pad);
 
         Button pick = new Button(this);
-        pick.setText("Choose image");
+        pick.setText("Choisir une image");
         pick.setOnClickListener(v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE).setType("image/*"), PICK_IMAGE));
         root.addView(pick);
 
         LinearLayout actions = new LinearLayout(this);
         strip = new Button(this);
-        strip.setText("Save clean copy");
+        strip.setText("Copie nettoyée");
         strip.setEnabled(false);
         strip.setOnClickListener(v -> stripMetadata());
         actions.addView(strip, new LinearLayout.LayoutParams(0, -2, 1f));
         map = new Button(this);
-        map.setText("Show GPS on map");
+        map.setText("Voir le GPS sur la carte");
         map.setEnabled(false);
         map.setOnClickListener(v -> Ui.openInApp(this, String.format(Locale.ROOT,
                 "https://www.openstreetmap.org/?mlat=%f&mlon=%f#map=16/%f/%f",
@@ -83,14 +83,14 @@ public class ExifActivity extends Activity {
         root.addView(actions);
 
         output = new TextView(this);
-        output.setTypeface(Flipper.pixel(this));
-        output.setTextColor(Flipper.ORANGE);
+        output.setTypeface(Panel.mono(this));
+        output.setTextColor(0xFFC9CED6);
         output.setTextSize(18);
         output.setTextIsSelectable(true);
-        output.setText("Pick a photo to read its EXIF metadata (camera, date, GPS, software…).\n\n"
-                + "\"Save clean copy\" removes all EXIF tags, like `exiftool -all= file`.\n\n"
-                + "Tip: share photos from the Files app, not the gallery — many apps strip "
-                + "location before handing the image over.");
+        output.setText("Choisissez une photo pour lire ses métadonnées EXIF (appareil, date, GPS, logiciel…).\n\n"
+                + "« Copie nettoyée » supprime toutes les balises EXIF, comme `exiftool -all= fichier`.\n\n"
+                + "Astuce : choisissez la photo depuis l'app Fichiers plutôt que la galerie — beaucoup "
+                + "d'apps retirent la position avant de transmettre l'image.");
         ScrollView scroll = new ScrollView(this);
         scroll.addView(output);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -107,9 +107,9 @@ public class ExifActivity extends Activity {
             try (InputStream in = new FileInputStream(cleaned);
                  OutputStream out = getContentResolver().openOutputStream(data.getData())) {
                 copy(in, out);
-                Ui.toast(this, "Clean copy saved");
+                Ui.toast(this, "Copie nettoyée enregistrée");
             } catch (IOException e) {
-                Ui.toast(this, "Save failed: " + e.getMessage());
+                Ui.toast(this, "Échec de l'enregistrement : " + e.getMessage());
             }
         }
     }
@@ -125,7 +125,7 @@ public class ExifActivity extends Activity {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("File: ").append(imageName).append("\nType: ").append(mimeType).append("\n\n");
+        sb.append("Fichier : ").append(imageName).append("\nType : ").append(mimeType).append("\n\n");
         try (InputStream in = getContentResolver().openInputStream(image)) {
             ExifInterface exif = new ExifInterface(in);
             int found = 0;
@@ -139,12 +139,12 @@ public class ExifActivity extends Activity {
             float[] ll = new float[2];
             latLong = exif.getLatLong(ll) ? new double[]{ll[0], ll[1]} : null;
             if (latLong != null) {
-                sb.insert(0, String.format(Locale.ROOT, "⚠ GPS location: %.6f, %.6f%n%n", latLong[0], latLong[1]));
+                sb.insert(0, String.format(Locale.ROOT, "⚠ Position GPS : %.6f, %.6f%n%n", latLong[0], latLong[1]));
             }
-            if (found == 0) sb.append("No EXIF metadata found.");
-            else sb.append('\n').append(found).append(" tags");
+            if (found == 0) sb.append("Aucune métadonnée EXIF trouvée.");
+            else sb.append('\n').append(found).append(" balises");
         } catch (IOException | RuntimeException e) {
-            sb.append("Could not read metadata: ").append(e.getMessage());
+            sb.append("Lecture impossible : ").append(e.getMessage());
         }
         output.setText(sb);
         map.setEnabled(latLong != null);
@@ -163,7 +163,7 @@ public class ExifActivity extends Activity {
             }
             exif.saveAttributes();
         } catch (IOException | RuntimeException e) {
-            Ui.toast(this, "Cannot strip this format: " + e.getMessage());
+            Ui.toast(this, "Format non pris en charge : " + e.getMessage());
             return;
         }
         String base = imageName.replaceFirst("\\.[^.]+$", "");

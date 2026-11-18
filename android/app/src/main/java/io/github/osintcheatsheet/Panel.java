@@ -1,27 +1,28 @@
 package io.github.osintcheatsheet;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * Widgets from the other two references: the cyber-infographic (charcoal, electric blue,
- * angled tabs, circuit traces) and the MPC drum machine (navy chassis, pads, transport keys).
+ * Design kit modelled on the "pipeline" infographic: charcoal background, electric-blue
+ * outlines, angled tabs, a circuit spine with nodes, grey kickers and bold white headlines.
  */
 final class Panel {
 
@@ -31,26 +32,45 @@ final class Panel {
     static final int BLUE_DIM = 0xFF1F5F94;
     static final int TEXT = 0xFFF2F4F7;
     static final int TEXT_DIM = 0xFF8C96A3;
-    static final int NAVY = 0xFF1C3A70;
-    static final int NAVY_GRID = 0xFF0E1C36;
-    static final int KEY = 0xFFECEFF3;
-    static final int KEY_PRESSED = 0xFFBFC6D0;
-    static final int KEY_TEXT = 0xFF1A1F27;
-    static final int PAD_GREY = 0xFFB9BCC2;
-    static final int PAD_YELLOW = 0xFFF0B43C;
-    static final int PAD_GREEN = 0xFF7BE04A;
-    static final int PAD_SELECTED = 0xFFF5A030;
-    static final int PAD_RING = 0xFFFFF06A;
-    static final int PAD_EMPTY = 0xFF27354F;
-    static final int REC_RED = 0xFFC41E2C;
-    static final int LED_OFF = 0xFF3A3F46;
-    static final int LED_GREEN = 0xFF4CFF3A;
-    static final int LED_RED = 0xFFFF3B3B;
+    static final int GREY = 0xFF9AA3AF;
 
-    /** Pad looks, mirroring how the MPC lights pads by content. */
-    static final int PAD_STATE_EMPTY = 0, PAD_STATE_WEB = 1, PAD_STATE_CLI = 2, PAD_STATE_NOTES = 3;
+    static Typeface bold(Context c) {
+        return c.getResources().getFont(R.font.montserrat_bold);
+    }
 
-    // ------------------------------------------------------------------ infographic
+    static Typeface medium(Context c) {
+        return c.getResources().getFont(R.font.montserrat_medium);
+    }
+
+    /** Monospace face for notes, commands and EXIF output. */
+    static Typeface mono(Context c) {
+        return c.getResources().getFont(R.font.vt323);
+    }
+
+    static TextView text(Context c, float sp, int color, boolean isBold) {
+        TextView tv = new TextView(c);
+        tv.setTypeface(isBold ? bold(c) : medium(c));
+        tv.setTextSize(sp);
+        tv.setTextColor(color);
+        return tv;
+    }
+
+    static GradientDrawable rounded(int fill, float strokeDp, int strokeColor, float radiusDp, Context c) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(fill);
+        d.setCornerRadius(Ui.dp(c, radiusDp));
+        if (strokeDp > 0) d.setStroke(Ui.dp(c, strokeDp), strokeColor);
+        return d;
+    }
+
+    static void press(View v, View.OnClickListener click) {
+        v.setOnClickListener(view -> {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            click.onClick(view);
+        });
+    }
+
+    // ------------------------------------------------------------------ tabs and cards
 
     /** Blue label tab with a slanted right edge ("PHASE 1 & 2"). */
     static final class TabDrawable extends Drawable {
@@ -80,204 +100,254 @@ final class Panel {
     }
 
     static TextView tab(Context c, String label) {
-        TextView tab = new TextView(c);
+        TextView tab = text(c, 13, TEXT, true);
         tab.setText(label);
-        tab.setTypeface(Flipper.title(c));
-        tab.setTextSize(12);
-        tab.setLetterSpacing(0.06f);
-        tab.setTextColor(TEXT);
+        tab.setLetterSpacing(0.04f);
         tab.setSingleLine(true);
         tab.setEllipsize(TextUtils.TruncateAt.END);
         tab.setBackground(new TabDrawable(BLUE));
-        tab.setPadding(Ui.dp(c, 12), Ui.dp(c, 5), Ui.dp(c, 30), Ui.dp(c, 5));
+        tab.setPadding(Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 30), Ui.dp(c, 6));
         return tab;
     }
 
-    /** Blue-outlined card with a tab on its top edge, a grey kicker and a bold white headline. */
-    static final class SectionCard extends FrameLayout {
+    /** Blue-outlined card with a tab sitting on its top edge; add children to {@link #content}. */
+    static final class Card extends FrameLayout {
         final TextView tab;
-        final TextView kicker;
-        final TextView headline;
+        final LinearLayout content;
 
-        SectionCard(Context c) {
+        Card(Context c, String tabText) {
             super(c);
-            LinearLayout box = new LinearLayout(c);
-            box.setOrientation(LinearLayout.VERTICAL);
+            content = new LinearLayout(c);
+            content.setOrientation(LinearLayout.VERTICAL);
             GradientDrawable outline = new GradientDrawable();
             outline.setStroke(Ui.dp(c, 1.5f), BLUE);
-            box.setBackground(outline);
-            box.setPadding(Ui.dp(c, 16), Ui.dp(c, 20), Ui.dp(c, 16), Ui.dp(c, 9));
-            kicker = text(c, 13, TEXT_DIM, true);
-            box.addView(kicker);
-            headline = text(c, 18, TEXT, true);
-            headline.setMaxLines(2);
-            headline.setEllipsize(TextUtils.TruncateAt.END);
-            box.addView(headline);
+            content.setBackground(outline);
+            content.setPadding(Ui.dp(c, 16), Ui.dp(c, 26), Ui.dp(c, 16), Ui.dp(c, 14));
             LayoutParams boxLp = new LayoutParams(-1, -2);
-            boxLp.topMargin = Ui.dp(c, 13);
-            addView(box, boxLp);
-
-            tab = tab(c, "");
-            addView(tab, new LayoutParams(-2, -2, Gravity.TOP | Gravity.START));
+            boxLp.topMargin = Ui.dp(c, 15);
+            addView(content, boxLp);
+            tab = tab(c, tabText);
+            LayoutParams tabLp = new LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
+            tabLp.rightMargin = Ui.dp(c, 40);
+            addView(tab, tabLp);
         }
 
-        void set(String tabText, String kickerText, String headlineText) {
-            tab.setText(tabText);
-            kicker.setText(kickerText);
-            headline.setText(headlineText);
+        /** Grey kicker, bold white headline and dim body, the infographic's text stack. */
+        void heading(String kicker, String headline, String body) {
+            Context c = getContext();
+            if (kicker != null) {
+                TextView k = text(c, 15, TEXT_DIM, true);
+                k.setText(kicker);
+                content.addView(k);
+            }
+            TextView h = text(c, 21, TEXT, true);
+            h.setText(headline);
+            h.setLineSpacing(0, 1.05f);
+            content.addView(h);
+            if (body != null) {
+                TextView b = text(c, 13.5f, 0xFFC9CED6, false);
+                b.setText(body);
+                b.setLineSpacing(0, 1.15f);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+                lp.topMargin = Ui.dp(c, 6);
+                content.addView(b, lp);
+            }
         }
     }
 
-    /** Faint circuit traces with nodes running down both edges of the screen. */
-    static final class CircuitDrawable extends Drawable {
-        private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint node = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** The angled double-outline frame of the infographic's highlight quote. */
+    static final class AngledDrawable extends Drawable {
+        private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
         private final float unit;
 
-        CircuitDrawable(Context c) {
+        AngledDrawable(Context c) {
             unit = Ui.dp(c, 1);
-            line.setColor(BLUE);
-            line.setAlpha(70);
-            line.setStrokeWidth(unit * 1.2f);
-            line.setStyle(Paint.Style.STROKE);
-            node.set(line);
-            node.setAlpha(120);
+            stroke.setStyle(Paint.Style.STROKE);
+            stroke.setColor(BLUE);
+            fill.setColor(SURFACE);
+        }
+
+        private void outline(Rect b, float inset, float cut) {
+            path.reset();
+            path.moveTo(b.left + inset + cut, b.top + inset);
+            path.lineTo(b.right - inset, b.top + inset);
+            path.lineTo(b.right - inset, b.bottom - inset - cut);
+            path.lineTo(b.right - inset - cut, b.bottom - inset);
+            path.lineTo(b.left + inset, b.bottom - inset);
+            path.lineTo(b.left + inset, b.top + inset + cut);
+            path.close();
         }
 
         @Override
         public void draw(Canvas canvas) {
             Rect b = getBounds();
-            canvas.drawColor(BG);
-            float[] xs = {b.left + unit * 5, b.left + unit * 9, b.right - unit * 9, b.right - unit * 5};
-            for (float x : xs) canvas.drawLine(x, b.top, x, b.bottom, line);
-            // Branches and nodes at a regular rhythm, alternating sides.
-            int i = 0;
-            for (float y = b.top + unit * 120; y < b.bottom - unit * 40; y += unit * 150, i++) {
-                boolean left = i % 2 == 0;
-                float x = left ? xs[1] : xs[2];
-                float stub = left ? unit * 6 : -unit * 6;
-                canvas.drawLine(x, y, x + stub, y + unit * 6, line);
-                canvas.drawCircle(x + stub, y + unit * 6, unit * 2.5f, node);
-                float other = left ? xs[0] : xs[3];
-                canvas.drawCircle(other, y + unit * 60, unit * 2.5f, node);
-            }
+            outline(b, unit, unit * 16);
+            canvas.drawPath(path, fill);
+            stroke.setStrokeWidth(unit * 3);
+            canvas.drawPath(path, stroke);
+            outline(b, unit * 8, unit * 12);
+            stroke.setStrokeWidth(unit * 1.2f);
+            canvas.drawPath(path, stroke);
         }
 
         @Override public void setAlpha(int alpha) { }
         @Override public void setColorFilter(ColorFilter cf) { }
-        @Override public int getOpacity() { return PixelFormat.OPAQUE; }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    // ------------------------------------------------------------------ MPC
-
-    static TextView text(Context c, float sp, int color, boolean bold) {
-        TextView tv = new TextView(c);
-        tv.setTypeface(bold ? Flipper.title(c) : Flipper.sans(c));
-        tv.setTextSize(sp);
-        tv.setTextColor(color);
-        return tv;
+    static TextView quote(Context c, String text) {
+        TextView q = text(c, 19, TEXT, true);
+        q.setText(text);
+        q.setLineSpacing(0, 1.1f);
+        q.setBackground(new AngledDrawable(c));
+        int p = Ui.dp(c, 24);
+        q.setPadding(p, Ui.dp(c, 22), p, Ui.dp(c, 22));
+        return q;
     }
 
-    /** Navy hardware chassis. */
-    static GradientDrawable chassis(Context c) {
-        GradientDrawable d = Flipper.rounded(NAVY, 0, 0, 14, c);
-        d.setStroke(Ui.dp(c, 1.5f), BLUE_DIM);
-        return d;
-    }
+    // ------------------------------------------------------------------ circuit spine
 
-    static TextView pad(Context c) {
-        TextView pad = text(c, 10.5f, KEY_TEXT, true);
-        pad.setGravity(Gravity.CENTER);
-        pad.setMaxLines(3);
-        pad.setEllipsize(TextUtils.TruncateAt.END);
-        int p = Ui.dp(c, 5);
-        pad.setPadding(p, p, p, p);
-        return pad;
-    }
+    /**
+     * One segment of the vertical circuit spine: parallel traces, a square node at nodeY and a
+     * connector to the card on its right. Stack segments next to cards to draw the whole pipeline.
+     */
+    static final class SpineView extends View {
+        private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint nodeFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float unit;
+        private final boolean first;
+        private final boolean last;
+        private float nodeY;
+        private float pulse = 1f;
 
-    static void stylePad(TextView pad, int state, boolean selected, String label) {
-        Context c = pad.getContext();
-        int fill;
-        switch (state) {
-            case PAD_STATE_CLI: fill = PAD_GREEN; break;
-            case PAD_STATE_NOTES: fill = PAD_YELLOW; break;
-            case PAD_STATE_WEB: fill = PAD_GREY; break;
-            default: fill = PAD_EMPTY; break;
-        }
-        GradientDrawable bg = Flipper.rounded(selected ? PAD_SELECTED : fill, selected ? 3 : 0, PAD_RING, 3, c);
-        pad.setBackground(bg);
-        pad.setText(state == PAD_STATE_EMPTY ? "" : label);
-        pad.setEnabled(state != PAD_STATE_EMPTY);
-    }
-
-    /** "REC ● / PLAY ● / STOP" key: label and LED above a big rounded key. */
-    static final class TransportKey extends LinearLayout {
-        private final View led;
-        private final int ledOn;
-
-        TransportKey(Context c, String label, int ledColor, int keyColor, View.OnClickListener click) {
+        SpineView(Context c, boolean first, boolean last) {
             super(c);
-            setOrientation(VERTICAL);
-            setGravity(Gravity.CENTER_HORIZONTAL);
-            LinearLayout caption = new LinearLayout(c);
-            caption.setGravity(Gravity.CENTER_VERTICAL);
-            ledOn = ledColor;
-            led = new View(c);
-            int dot = Ui.dp(c, 9);
-            if (ledColor != 0) {
-                LayoutParams ledLp = new LayoutParams(dot, dot);
-                ledLp.rightMargin = Ui.dp(c, 4);
-                caption.addView(led, ledLp);
-            }
-            caption.addView(text(c, 11, TEXT, true));
-            ((TextView) caption.getChildAt(caption.getChildCount() - 1)).setText(label);
-            addView(caption);
-
-            View key = new View(c);
-            StateListDrawable states = new StateListDrawable();
-            states.addState(new int[]{android.R.attr.state_pressed},
-                    Flipper.rounded(Color.rgb(Color.red(keyColor) * 3 / 4, Color.green(keyColor) * 3 / 4,
-                            Color.blue(keyColor) * 3 / 4), 0, 0, 9, c));
-            states.addState(new int[0], Flipper.rounded(keyColor, 0, 0, 9, c));
-            key.setBackground(states);
-            key.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
-                click.onClick(v);
-            });
-            key.setContentDescription(label);
-            LayoutParams keyLp = new LayoutParams(-1, Ui.dp(c, 36));
-            keyLp.topMargin = Ui.dp(c, 5);
-            addView(key, keyLp);
-            setLed(ledColor == LED_GREEN);
+            this.first = first;
+            this.last = last;
+            unit = Ui.dp(c, 1);
+            nodeY = unit * 46;
+            line.setStyle(Paint.Style.STROKE);
+            line.setStrokeWidth(unit * 1.5f);
+            line.setColor(BLUE);
+            nodeFill.setColor(SURFACE);
+            dot.setColor(BLUE);
         }
 
-        void setLed(boolean on) {
-            GradientDrawable d = new GradientDrawable();
-            d.setShape(GradientDrawable.OVAL);
-            d.setColor(on ? ledOn : LED_OFF);
-            led.setBackground(d);
+        void setNodeY(float dp) {
+            nodeY = unit * dp;
+            invalidate();
+        }
+
+        /** 0..1 scale of the node's inner dot, for the guide's animation. */
+        void setPulse(float value) {
+            pulse = value;
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float cx = getWidth() / 2f, h = getHeight();
+            float bottom = last ? nodeY : h;
+            float[] offsets = {-7, 0, 7};
+            for (float o : offsets) {
+                float x = cx + o * unit;
+                float y0 = first ? nodeY - (o == 0 ? 30 * unit : 0) : 0;
+                canvas.drawLine(x, Math.max(0, y0), x, bottom, line);
+            }
+            // Small vias on the side traces, like the infographic's spine.
+            canvas.drawCircle(cx - 7 * unit, Math.min(h - 6 * unit, nodeY + 52 * unit), 3 * unit, line);
+            if (first) canvas.drawCircle(cx, Math.max(4 * unit, nodeY - 30 * unit), 3.5f * unit, line);
+            // Node: rounded square with a ring and a dot, plus the connector to the card.
+            float half = 15 * unit;
+            canvas.drawRoundRect(cx - half, nodeY - half, cx + half, nodeY + half, 5 * unit, 5 * unit, nodeFill);
+            canvas.drawRoundRect(cx - half, nodeY - half, cx + half, nodeY + half, 5 * unit, 5 * unit, line);
+            canvas.drawCircle(cx, nodeY, 7 * unit, line);
+            canvas.drawCircle(cx, nodeY, 3.5f * unit * pulse, dot);
+            canvas.drawLine(cx + half, nodeY, getWidth(), nodeY, line);
         }
     }
 
-    /** Small "ONE" / "TWO"-style pill key with a caption above. */
-    static LinearLayout pill(Context c, String label, int color, View.OnClickListener click) {
+    /** Puts a card to the right of a spine segment. */
+    static LinearLayout spineRow(Context c, View card, boolean first, boolean last, float nodeYdp) {
+        LinearLayout row = new LinearLayout(c);
+        SpineView spine = new SpineView(c, first, last);
+        spine.setNodeY(nodeYdp);
+        row.addView(spine, new LinearLayout.LayoutParams(Ui.dp(c, 44), -1));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        cardLp.bottomMargin = Ui.dp(c, 18);
+        row.addView(card, cardLp);
+        return row;
+    }
+
+    // ------------------------------------------------------------------ controls
+
+    /** Square, blue-outlined quick-access button with an icon and a caption. */
+    static LinearLayout quickButton(Context c, int icon, String label, View.OnClickListener click) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER_HORIZONTAL);
-        TextView caption = text(c, 11, TEXT, true);
-        caption.setText(label);
-        box.addView(caption);
-        View key = new View(c);
-        key.setBackground(Flipper.rounded(color, 0, 0, 6, c));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, 46), Ui.dp(c, 18));
-        lp.topMargin = Ui.dp(c, 4);
-        box.addView(key, lp);
+        ImageView square = new ImageView(c);
+        square.setBackground(rounded(SURFACE, 1.5f, BLUE_DIM, 6, c));
+        square.setImageResource(icon);
+        square.setImageTintList(ColorStateList.valueOf(BLUE));
+        int pad = Ui.dp(c, 11);
+        square.setPadding(pad, pad, pad, pad);
+        box.addView(square, new LinearLayout.LayoutParams(Ui.dp(c, 48), Ui.dp(c, 48)));
+        TextView caption = text(c, 11, TEXT_DIM, true);
+        caption.setText(label.toUpperCase(java.util.Locale.ROOT));
+        caption.setLetterSpacing(0.06f);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.topMargin = Ui.dp(c, 5);
+        box.addView(caption, lp);
         box.setContentDescription(label);
-        box.setOnClickListener(v -> {
-            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
-            click.onClick(v);
-        });
+        press(box, click);
         return box;
+    }
+
+    /** "WEB" (grey outline) or ">_ TERMINAL" (blue) marker for a tool. */
+    static TextView tag(Context c, boolean terminal) {
+        TextView t = text(c, 10, terminal ? TEXT : GREY, true);
+        t.setText(terminal ? ">_ TERMINAL" : "WEB");
+        t.setLetterSpacing(0.06f);
+        t.setBackground(terminal ? rounded(BLUE_DIM, 0, 0, 3, c) : rounded(0, 1, 0xFF5C6675, 3, c));
+        t.setPadding(Ui.dp(c, 6), Ui.dp(c, 2), Ui.dp(c, 6), Ui.dp(c, 2));
+        return t;
+    }
+
+    /** A tool (or notes) line inside a section card. */
+    static LinearLayout toolRow(Context c, String name, String detail, Boolean terminal) {
+        LinearLayout row = new LinearLayout(c);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, Ui.dp(c, 9), 0, Ui.dp(c, 9));
+        LinearLayout texts = new LinearLayout(c);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView n = text(c, 15, TEXT, true);
+        n.setText(name);
+        texts.addView(n);
+        if (detail != null && !detail.isEmpty()) {
+            TextView d = text(c, 12, TEXT_DIM, false);
+            d.setText(detail);
+            d.setMaxLines(2);
+            d.setEllipsize(TextUtils.TruncateAt.END);
+            texts.addView(d);
+        }
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
+        if (terminal != null) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.leftMargin = Ui.dp(c, 10);
+            row.addView(tag(c, terminal), lp);
+        }
+        return row;
+    }
+
+    static View divider(Context c) {
+        View d = new View(c);
+        d.setBackgroundColor(0xFF2A313D);
+        d.setLayoutParams(new LinearLayout.LayoutParams(-1, Ui.dp(c, 1)));
+        return d;
     }
 
     private Panel() {

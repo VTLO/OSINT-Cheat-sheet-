@@ -23,19 +23,19 @@ public class DorkActivity extends Activity {
 
     /** {label, template}; templates starting with http are opened directly. */
     private static final String[][] TEMPLATES = {
-            {"— Pick a template —", ""},
-            {"Dork · Text on a site", "intext:\"{TARGET}\" site:example.com"},
-            {"Dork · Documents on a site", "site:{TARGET} ext:doc | ext:docx | ext:odt | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv"},
-            {"Dork · Open directory (index of)", "intitle:\"index of\" \"{TARGET}\""},
-            {"Dork · All words in title", "allintitle: {TARGET}"},
-            {"Dork · All words in URL", "allinurl: {TARGET}"},
-            {"Dork · Pages linking to", "link:{TARGET}"},
-            {"Dork · Define term", "define:{TARGET}"},
-            {"Facebook · Group search", "site:facebook.com inurl:group \"{TARGET}\""},
-            {"Facebook · Group wall posts", "site:facebook.com inurl:wall \"{TARGET}\""},
+            {"— Choisir un modèle —", ""},
+            {"Dork · Texte sur un site", "intext:\"{TARGET}\" site:example.com"},
+            {"Dork · Documents sur un site", "site:{TARGET} ext:doc | ext:docx | ext:odt | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv"},
+            {"Dork · Répertoire ouvert (index of)", "intitle:\"index of\" \"{TARGET}\""},
+            {"Dork · Tous les mots dans le titre", "allintitle: {TARGET}"},
+            {"Dork · Tous les mots dans l'URL", "allinurl: {TARGET}"},
+            {"Dork · Pages qui pointent vers", "link:{TARGET}"},
+            {"Dork · Définir un terme", "define:{TARGET}"},
+            {"Facebook · Recherche de groupes", "site:facebook.com inurl:group \"{TARGET}\""},
+            {"Facebook · Publications de groupe", "site:facebook.com inurl:wall \"{TARGET}\""},
             {"Facebook · Pages", "site:facebook.com inurl:pages \"{TARGET}\""},
-            {"Facebook · Public profiles", "allinurl: people \"{TARGET}\" site:facebook.com"},
-            {"Facebook · By ID", "id {TARGET} site:facebook.com *"},
+            {"Facebook · Profils publics", "allinurl: people \"{TARGET}\" site:facebook.com"},
+            {"Facebook · Par ID", "id {TARGET} site:facebook.com *"},
             {"FQL · Photos by (ID)", "https://www.facebook.com/search/{TARGET}/photos-by"},
             {"FQL · Photos liked (ID)", "https://www.facebook.com/search/{TARGET}/photos-liked"},
             {"FQL · Photos of (ID)", "https://www.facebook.com/search/{TARGET}/photos-of"},
@@ -47,15 +47,15 @@ public class DorkActivity extends Activity {
             {"FQL · Videos commented (ID)", "https://www.facebook.com/search/{TARGET}/videos-commented"},
             {"FQL · Events attended (ID)", "https://www.facebook.com/search/{TARGET}/events-joined"},
             {"FQL · Relatives (ID)", "https://www.facebook.com/search/{TARGET}/relatives"},
-            {"LinkedIn · Public profiles", "site:linkedin.com inurl:pub \"{TARGET}\""},
-            {"LinkedIn · Updated profiles", "site:linkedin.com inurl:updates \"{TARGET}\""},
-            {"LinkedIn · Company profiles", "site:linkedin.com inurl:companies \"{TARGET}\""},
-            {"MySpace · Profiles", "site:myspace.com inurl:profile \"{TARGET}\""},
+            {"LinkedIn · Profils publics", "site:linkedin.com inurl:pub \"{TARGET}\""},
+            {"LinkedIn · Profils mis à jour", "site:linkedin.com inurl:updates \"{TARGET}\""},
+            {"LinkedIn · Pages d'entreprise", "site:linkedin.com inurl:companies \"{TARGET}\""},
+            {"MySpace · Profils", "site:myspace.com inurl:profile \"{TARGET}\""},
             {"MySpace · Blogs", "site:myspace.com inurl:blogs \"{TARGET}\""},
-            {"MySpace · Videos", "site:myspace.com \"{TARGET}\" \"videos\""},
-            {"MySpace · Comments", "site:myspace.com \"{TARGET}\" \"comments\""},
-            {"MySpace · Friends", "site:myspace.com \"{TARGET}\" \"friends\""},
-            {"Telegram · Channels & users", "site:t.me \"{TARGET}\""},
+            {"MySpace · Vidéos", "site:myspace.com \"{TARGET}\" \"videos\""},
+            {"MySpace · Commentaires", "site:myspace.com \"{TARGET}\" \"comments\""},
+            {"MySpace · Amis", "site:myspace.com \"{TARGET}\" \"friends\""},
+            {"Telegram · Canaux et utilisateurs", "site:t.me \"{TARGET}\""},
             {"Pastebin · Mentions", "site:pastebin.com \"{TARGET}\""},
     };
 
@@ -78,10 +78,10 @@ public class DorkActivity extends Activity {
         int pad = Ui.dp(this, 16);
         form.setPadding(pad, pad, pad, pad);
 
-        form.addView(Ui.text(this, "Target (name, username, domain, Facebook ID…)", 13, true));
-        target = field(form, "e.g. johndoe or example.com");
+        form.addView(Ui.text(this, "Cible (nom, pseudo, domaine, ID Facebook…)", 13, true));
+        target = field(form, "ex. johndoe ou exemple.com");
 
-        form.addView(Ui.text(this, "Template", 13, true));
+        form.addView(Ui.text(this, "Modèle", 13, true));
         Spinner templates = new Spinner(this);
         String[] labels = new String[TEMPLATES.length];
         for (int i = 0; i < TEMPLATES.length; i++) labels[i] = TEMPLATES[i][0];
@@ -97,15 +97,15 @@ public class DorkActivity extends Activity {
         });
         form.addView(templates);
 
-        form.addView(Ui.text(this, "Or combine operators", 13, true));
+        form.addView(Ui.text(this, "Ou combiner des opérateurs", 13, true));
         EditText site = field(form, "site:  (e.g. github.com)");
         EditText inurl = field(form, "inurl:");
         EditText intitle = field(form, "intitle:");
         EditText intext = field(form, "intext:");
         EditText filetype = field(form, "filetype:  (pdf, docx, xls…)");
-        EditText exclude = field(form, "exclude words  (-word)");
+        EditText exclude = field(form, "mots à exclure  (-mot)");
         Button build = new Button(this);
-        build.setText("Generate query");
+        build.setText("Générer la requête");
         build.setOnClickListener(v -> {
             StringBuilder q = new StringBuilder();
             if (!targetOr("").isEmpty()) q.append('"').append(targetOr("")).append("\" ");
@@ -121,7 +121,7 @@ public class DorkActivity extends Activity {
         });
         form.addView(build);
 
-        form.addView(Ui.text(this, "Query", 13, true));
+        form.addView(Ui.text(this, "Requête", 13, true));
         query = new EditText(this);
         query.setMinLines(3);
         query.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
@@ -139,12 +139,12 @@ public class DorkActivity extends Activity {
 
         LinearLayout extra = new LinearLayout(this);
         Button copy = new Button(this);
-        copy.setText("Copy query");
+        copy.setText("Copier");
         copy.setOnClickListener(v -> Ui.copy(this, query.getText().toString()));
         extra.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
         Button operators = new Button(this);
-        operators.setText("Operator help");
-        operators.setOnClickListener(v -> TextActivity.show(this, "Dorking operators", OPERATOR_HELP));
+        operators.setText("Aide opérateurs");
+        operators.setOnClickListener(v -> TextActivity.show(this, "Opérateurs de dorking", OPERATOR_HELP));
         extra.addView(operators, new LinearLayout.LayoutParams(0, -2, 1f));
         form.addView(extra);
 
@@ -176,7 +176,7 @@ public class DorkActivity extends Activity {
     private void search(String engineUrl) {
         String q = query.getText().toString().trim();
         if (q.isEmpty()) {
-            Ui.toast(this, "Generate or type a query first");
+            Ui.toast(this, "Générez ou tapez d'abord une requête");
         } else if (q.startsWith("http://") || q.startsWith("https://")) {
             Ui.openInApp(this, q);
         } else {

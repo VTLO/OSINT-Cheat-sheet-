@@ -1,5 +1,3 @@
-# OSINT CHEAT SHEET - Awesome Article
-
 # OSINT RESOURCES DATASET e.g E-BOOK, TELEGRAM, ARTICLE
 
 - [Join Telegram channel](https://t.me/seccodeid)

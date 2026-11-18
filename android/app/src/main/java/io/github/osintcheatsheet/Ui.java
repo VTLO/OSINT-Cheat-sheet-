@@ -43,7 +43,7 @@ final class Ui {
     static void copy(Context c, String value) {
         ClipboardManager cm = (ClipboardManager) c.getSystemService(Context.CLIPBOARD_SERVICE);
         cm.setPrimaryClip(ClipData.newPlainText("OSINT", value));
-        toast(c, "Copied to clipboard");
+        toast(c, "Copié dans le presse-papiers");
     }
 
     static void share(Context c, String subject, String value) {
@@ -51,7 +51,7 @@ final class Ui {
                 .setType("text/plain")
                 .putExtra(Intent.EXTRA_SUBJECT, subject)
                 .putExtra(Intent.EXTRA_TEXT, value);
-        c.startActivity(Intent.createChooser(send, "Share"));
+        c.startActivity(Intent.createChooser(send, "Partager"));
     }
 
     static void openInApp(Context c, String url) {
@@ -62,7 +62,7 @@ final class Ui {
         try {
             c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         } catch (ActivityNotFoundException e) {
-            toast(c, "No app can open this link");
+            toast(c, "Aucune app ne peut ouvrir ce lien");
         }
     }
 
