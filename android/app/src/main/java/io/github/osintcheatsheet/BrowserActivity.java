@@ -62,7 +62,15 @@ public class BrowserActivity extends Activity {
         progress.setMax(100);
         root.addView(progress, new LinearLayout.LayoutParams(-1, Ui.dp(this, 3)));
 
-        web = new WebView(this);
+        try {
+            web = new WebView(this);
+        } catch (RuntimeException e) {
+            // No usable WebView on this device (disabled, updating or missing): use the system browser.
+            String url = getIntent().getStringExtra(EXTRA_URL);
+            if (url != null) Ui.openExternal(this, url);
+            finish();
+            return;
+        }
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -138,7 +146,7 @@ public class BrowserActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        web.saveState(outState);
+        if (web != null) web.saveState(outState);
     }
 
     @Override
@@ -188,7 +196,7 @@ public class BrowserActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        web.destroy();
+        if (web != null) web.destroy();
         super.onDestroy();
     }
 }
