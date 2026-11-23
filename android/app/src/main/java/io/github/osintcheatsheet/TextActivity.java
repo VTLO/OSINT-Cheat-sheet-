@@ -35,8 +35,8 @@ public class TextActivity extends Activity {
         TextView view = new TextView(this);
         int pad = Ui.dp(this, 16);
         view.setPadding(pad, pad, pad, pad);
-        view.setTypeface(Flipper.pixel(this));
-        view.setTextColor(Flipper.ORANGE);
+        view.setTypeface(Panel.mono(this));
+        view.setTextColor(0xFFC9CED6);
         view.setTextSize(20);
         view.setLineSpacing(0, 1.15f);
         view.setTextIsSelectable(true);
@@ -51,8 +51,8 @@ public class TextActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 1, 0, "Copy all");
-        menu.add(0, 2, 0, "Share");
+        menu.add(0, 1, 0, "Tout copier");
+        menu.add(0, 2, 0, "Partager");
         return true;
     }
 

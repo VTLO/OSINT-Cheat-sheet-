@@ -1,0 +1,31 @@
+{
+  "phases": [
+    {"id": 1, "icon": "radar", "kicker": "Recherche", "headline": "Trouver l'information brute.",
+     "body": "Moteurs, dorks, archives, fichiers, code et dark web."},
+    {"id": 2, "icon": "identity", "kicker": "Identités", "headline": "Identifier personnes et comptes.",
+     "body": "Pseudos, téléphones, e-mails, fuites de données et registres publics."},
+    {"id": 3, "icon": "network", "kicker": "Réseaux sociaux", "headline": "Suivre l'empreinte sociale.",
+     "body": "Facebook, Instagram, X/Twitter, LinkedIn, Telegram et veille sociale."},
+    {"id": 4, "icon": "media", "kicker": "Images & Géo", "headline": "Faire parler images et lieux.",
+     "body": "Recherche inversée, EXIF, vidéo, cartes et imagerie satellite."},
+    {"id": 5, "icon": "stack", "kicker": "Infrastructure", "headline": "Cartographier la surface technique.",
+     "body": "Domaines, IP, IoT, menaces, serveurs et cryptomonnaies."},
+    {"id": 6, "icon": "funnel", "kicker": "Vérification & Arsenal", "headline": "Croiser, valider, s'équiper.",
+     "body": "Fact-checking, frameworks OSINT, outils GitHub, communautés et articles."}
+  ],
+  "comment": "Rules are tried in order on the lower-cased section title; the first keyword found wins. Unmatched sections go to the default phase.",
+  "default": 6,
+  "rules": [
+    ["articles", 6],
+    ["exif", 4], ["image", 4], ["video", 4], ["geospatial", 4], ["stock", 4], ["capturing", 4], ["wireless", 4],
+    ["facebook", 3], ["fql", 3], ["instagram", 3], ["pinterest", 3], ["twitter", 3], ["linkedin", 3],
+    ["myspace", 3], ["telegram", 3], ["social", 3], ["socmint", 3], ["monitoring", 3],
+    ["people", 2], ["phone", 2], ["username", 2], ["email", 2], ["public record", 2], ["breach", 2],
+    ["web intelligence", 5], ["url", 5], ["cyber", 5], ["iot", 5], ["shodan", 5], ["ip address", 5],
+    ["soc or", 5], ["server", 5], ["zero day", 5], ["company", 5], ["crypto", 5],
+    ["fact", 6], ["ctf", 6], ["osint tools", 6], ["osint github", 6], ["osint online", 6], ["forum", 6],
+    ["dataset", 6], ["competitive", 6],
+    ["dork", 1], ["google", 1], ["search", 1], ["archive", 1], ["file", 1], ["document", 1], ["blog", 1],
+    ["darkweb", 1], ["jurnal", 1], ["journal", 1], ["tracking website", 1]
+  ]
+}

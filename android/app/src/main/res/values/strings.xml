@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">VTLOsint</string>
-    <string name="dork_builder">Dork Builder</string>
-    <string name="exif_tool">EXIF Metadata Tool</string>
+    <string name="dork_builder">Générateur de dorks</string>
+    <string name="exif_tool">Métadonnées EXIF</string>
 </resources>

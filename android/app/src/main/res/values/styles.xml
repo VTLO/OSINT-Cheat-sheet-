@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Palette: infographic charcoal + electric blue, MPC navy chassis and keys, Flipper orange LCD. -->
+    <!-- Palette from the pipeline infographic: charcoal, electric blue, greys and white. -->
     <color name="bg">#171B22</color>
     <color name="surface">#1F2530</color>
     <color name="blue">#2F9BEF</color>
     <color name="text">#F2F4F7</color>
     <color name="text_dim">#8C96A3</color>
-    <color name="key">#ECEFF3</color>
-    <color name="key_pressed">#BFC6D0</color>
-    <color name="key_text">#1A1F27</color>
+    <color name="key">#2F9BEF</color>
+    <color name="key_pressed">#1F5F94</color>
+    <color name="key_text">#FFFFFF</color>
     <color name="icon_bg">#C45A36</color>
 
     <style name="AppTheme" parent="android:Theme.Material">
@@ -64,7 +64,7 @@
         <item name="android:fontFamily">@font/montserrat_medium</item>
     </style>
 
-    <!-- White MPC transport-style key. -->
+    <!-- Solid blue key, like the infographic's tabs. -->
     <style name="Button" parent="android:Widget.Material.Button">
         <item name="android:background">@drawable/btn_key</item>
         <item name="android:textColor">@color/key_text</item>

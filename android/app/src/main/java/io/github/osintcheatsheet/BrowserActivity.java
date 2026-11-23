@@ -62,7 +62,15 @@ public class BrowserActivity extends Activity {
         progress.setMax(100);
         root.addView(progress, new LinearLayout.LayoutParams(-1, Ui.dp(this, 3)));
 
-        web = new WebView(this);
+        try {
+            web = new WebView(this);
+        } catch (RuntimeException e) {
+            // No usable WebView on this device (disabled, updating or missing): use the system browser.
+            String url = getIntent().getStringExtra(EXTRA_URL);
+            if (url != null) Ui.openExternal(this, url);
+            finish();
+            return;
+        }
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -85,7 +93,7 @@ public class BrowserActivity extends Activity {
                     intent.setComponent(null);
                     startActivity(intent);
                 } catch (Exception e) {
-                    Ui.toast(BrowserActivity.this, "No app can open " + scheme + " links");
+                    Ui.toast(BrowserActivity.this, "Aucune app ne peut ouvrir les liens " + scheme);
                 }
                 return true;
             }
@@ -138,7 +146,7 @@ public class BrowserActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        web.saveState(outState);
+        if (web != null) web.saveState(outState);
     }
 
     @Override
@@ -162,12 +170,12 @@ public class BrowserActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 1, 0, "Reload");
-        menu.add(0, 2, 0, "Forward");
-        menu.add(0, 3, 0, "Wayback Machine copy");
-        menu.add(0, 4, 0, "Open in external browser");
-        menu.add(0, 5, 0, "Copy link");
-        menu.add(0, 6, 0, "Share");
+        menu.add(0, 1, 0, "Recharger");
+        menu.add(0, 2, 0, "Suivant");
+        menu.add(0, 3, 0, "Copie Wayback Machine");
+        menu.add(0, 4, 0, "Ouvrir dans le navigateur externe");
+        menu.add(0, 5, 0, "Copier le lien");
+        menu.add(0, 6, 0, "Partager");
         return true;
     }
 
@@ -188,7 +196,7 @@ public class BrowserActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        web.destroy();
+        if (web != null) web.destroy();
         super.onDestroy();
     }
 }
